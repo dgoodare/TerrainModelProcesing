@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim  # package implementing various optimisation algorithms
 from torch.optim import lr_scheduler  # provides methods for adjusting the learning rate
-from torch.utils.data import dataloader  # module for iterating over a dataset
+from torch.utils.data import DataLoader  # module for iterating over a dataset
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
@@ -20,11 +20,14 @@ import copy
 
 print(cv2.__version__)
 
+def ReverseMask(img):
+    """A function to reverse an image mask"""
+    return 1-img
+
 class RMNet():
     def __init__(self, config):
         # image and mask dimensions
-        self.imgWidth = config.imgWidth
-        self.imgHeight = config.imgHeight
+        self.imgSize = config.imgSize
         self.imgChannels = config.imgChannels
         self.maskChannels = config.maskChannels
         self.imgShape = (self.imgWidth, self.imgHeight, self.imgChannels)
@@ -51,14 +54,27 @@ class RMNet():
 
         self.continueTrain = True
 
-        # discriminator and generator
-        self.discriminator = Discriminator(config)
-        self.generator = Generator(config)
+        # set transformation for images to make sure they are the correct size
+        imageTransforms = transforms.Compose(
+            [
+                transforms.Resize(self.imgSize),
+                transforms.ToTensor(),
+                # transforms.Normalize()
+            ]
+        )
+
+        # create and load dataset
+        self.dataset = datasets.ImageFolder(root=self.imgDir, transform=imageTransforms)
+        self.loader = DataLoader(dataset=self.dataset, batch_size=self.batchSize, shuffle=True)
+
+        # Initialise the discriminator network
+        self.discriminator = Discriminator(features=config.discFeatures, imgChannels=self.imgChannels)
+
+        # Initialise the generator network, first create the reverse-masked image
+
+        self.generator = Generator(features=config.genFeatures, imgChannels=self.imgChannels)
 
         # initialise optimiser functions for Generator and Discriminator
         self.discOpt = optim.Adam()
         self.genOpt = optim.Adam()
-
-
-
 

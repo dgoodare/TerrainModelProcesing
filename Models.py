@@ -1,45 +1,40 @@
-import torch
 import torch.nn as nn
-from torchvision import transforms
 
 
 class Discriminator(nn.Module):
     """A class to represent a discriminator within a GAN"""
 
-    def __init__(self, config):
+    def __init__(self, imgChannels,  features):
         super(Discriminator, self).__init__()
-        self.imgChannels = config.imgChannels
-        self.maskChannels = config.maskChannels
-        self.missingShape = config.missingShape
-        self.features = config.discFeatures
+        self.features = features
 
         # Layers of the discriminator network
         self.layer1 = nn.Sequential(
-            nn.Conv2d(in_channels=self.imgChannels, out_channels=self.imgChannels, kernel_size=3, stride=2, padding=0),
+            nn.Conv2d(in_channels=imgChannels, out_channels=imgChannels, kernel_size=3, stride=2, padding=0),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.25),
         )
 
         self.layer2 = nn.Sequential(
-            nn.Conv2d(self.features * 2, out_channels=self.imgChannels, kernel_size=3, stride=2, padding=0),
+            nn.Conv2d(features * 2, out_channels=imgChannels, kernel_size=3, stride=2, padding=0),
             nn.ZeroPad2d((0, 1, 0, 1)),
-            nn.BatchNorm2d(momentum=0.8),
+            nn.BatchNorm2d(num_features=features, momentum=0.8),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.25),
         )
 
         # layer 3
         self.layer3 = nn.Sequential(
-            nn.Conv2d(self.features * 4, out_channels=self.imgChannels, kernel_size=3, stride=2, padding=0),
-            nn.BatchNorm2d(momentum=0.8),
+            nn.Conv2d(features * 4, out_channels=imgChannels, kernel_size=3, stride=2, padding=0),
+            nn.BatchNorm2d(num_features=features, momentum=0.8),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.25),
         )
 
         # layer 4
         self.layer4 = nn.Sequential(
-            nn.Conv2d(self.features * 8, out_channels=self.imgChannels, kernel_size=3, stride=2, padding=0),
-            nn.BatchNorm2d(momentum=0.8),
+            nn.Conv2d(features * 8, out_channels=imgChannels, kernel_size=3, stride=2, padding=0),
+            nn.BatchNorm2d(num_features=features, momentum=0.8),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.25),
         )
@@ -54,23 +49,11 @@ class Discriminator(nn.Module):
 
         return output
 
-
-def reversemask(x):
-    """A function that reverses an image mask"""
-    return 1 - x
-
-
 class Generator(nn.Module):
     """A class to represent a generator within a GAN"""
 
-    def __init__(self, config):
+    def __init__(self, imgChannels, features):
         super(Generator, self).__init__()
-        self.imgChannels = config.imgChannels
-        self.inputImg = torch.tensor(shape=config.imgShape, dtype="float32", name="imageInput")
-        self.inputMask = torch.tensor(shape=config.maskShape, dtype="float32", name="maskInput")
-        self.reversedMask = transforms.Lambda(reversemask(self.inputMask))
-        self.maskedImg = torch.mul(self.inputImg, self.reversedMask)
-        self.features = config.genFeatures
 
         ###
         # Encoding Stage:
@@ -81,14 +64,14 @@ class Generator(nn.Module):
         #   complexity.
         ###
         self.encodeLayer = nn.Sequential(
-            nn.Conv2d(in_channels=self.imgChannels, out_channels=self.features, kernel_size=(5, 5), dilation=2),
+            nn.Conv2d(in_channels=imgChannels, out_channels=features, kernel_size=(5, 5), dilation=2),
             nn.LeakyReLU(negative_slope=0.2),
-            nn.BatchNorm2d(num_features=self.features, momentum=0.8)
+            nn.BatchNorm2d(num_features=features, momentum=0.8)
         )
 
         # the final encoding layer includes dropout instead of batch normalisation to prevent over-fitting
         self.encodeLayerDropout = nn.Sequential(
-            nn.Conv2d(in_channels=self.imgChannels, out_channels=self.features, kernel_size=(5, 5), dilation=2),
+            nn.Conv2d(in_channels=imgChannels, out_channels=features, kernel_size=(5, 5), dilation=2),
             nn.LeakyReLU(negative_slope=0.2),
             nn.Dropout()
         )
@@ -100,13 +83,13 @@ class Generator(nn.Module):
 
         self.decodeLayer = nn.Sequential(
             nn.Upsample(size=(2, 2), mode='bilinear'),
-            nn.ConvTranspose2d(in_channels=self.imgChannels, out_channels=self.features, kernel_size=(5, 5), ),
+            nn.ConvTranspose2d(in_channels=imgChannels, out_channels=features, kernel_size=(5, 5), ),
             # Lambda(lambda x: tf.pad(x,[[0,0],[0,0],[0,0],[0,0]],'REFLECT'))
             nn.ReLU(),
-            nn.BatchNorm2d(num_features=self.features, momentum=0.8)
+            nn.BatchNorm2d(num_features=features, momentum=0.8)
         )
         self.outputLayer = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=self.imgChannels, kernel_size=(3, 3)),
+            nn.ConvTranspose2d(in_channels=imgChannels, out_channels=features, kernel_size=(3, 3)),
             nn.Tanh()
         )
 
