@@ -22,8 +22,7 @@ class TrainingConfig:
     """Initialises values for training the model"""
     def __init__(self, trainSection):
         self.batchSize = int(trainSection['batchSize'])
-        self.imgHeight = int(trainSection['imgHeight'])
-        self.imgHeight = int(trainSection['imgHeight'])
+        self.imgSize = int(trainSection['imgSize'])
         self.imgChannels = int(trainSection['imgChannels'])
         self.maskChannels = int(trainSection['maskChannels'])
         self.numEpochs = int(trainSection['numEpochs'])
