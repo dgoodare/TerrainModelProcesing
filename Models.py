@@ -49,6 +49,7 @@ class Discriminator(nn.Module):
 
         return output
 
+
 class Generator(nn.Module):
     """A class to represent a generator within a GAN"""
 

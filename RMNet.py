@@ -18,21 +18,21 @@ import time
 import os
 import copy
 
-print(cv2.__version__)
 
 def ReverseMask(img):
     """A function to reverse an image mask"""
     return 1-img
 
-class RMNet():
+
+class RMNet:
     def __init__(self, config):
         # image and mask dimensions
         self.imgSize = config.imgSize
         self.imgChannels = config.imgChannels
         self.maskChannels = config.maskChannels
-        self.imgShape = (self.imgWidth, self.imgHeight, self.imgChannels)
-        self.maskShape = (self.imgWidth, self.imgHeight, self.maskChannels)
-        self.missingShape = (self.imgWidth, self.imgHeight, self.imgChannels)
+        self.imgShape = (self.imgSize, self.imgSize, self.imgChannels)
+        self.maskShape = (self.imgSize, self.imgSize, self.maskChannels)
+        self.missingShape = (self.imgSize, self.imgSize, self.imgChannels)
 
         # training Hyper-parameters
         self.numEpochs = config.numEpochs
@@ -55,6 +55,7 @@ class RMNet():
         self.continueTrain = True
 
         # set transformation for images to make sure they are the correct size
+        # and then convert them to tensors
         imageTransforms = transforms.Compose(
             [
                 transforms.Resize(self.imgSize),
@@ -64,17 +65,50 @@ class RMNet():
         )
 
         # create and load dataset
-        self.dataset = datasets.ImageFolder(root=self.imgDir, transform=imageTransforms)
-        self.loader = DataLoader(dataset=self.dataset, batch_size=self.batchSize, shuffle=True)
+        self.dataSet = datasets.ImageFolder(root=self.imgDir, transform=imageTransforms)
+        self.dataLoader = DataLoader(dataset=self.dataSet, batch_size=self.batchSize, shuffle=True)
+
+        # create and load mask set
+        self.maskSet = datasets.ImageFolder(root=self.maskDir, transform=imageTransforms)
+        self.maskLoader = DataLoader(dataset=self.maskSet, batch_size=self.batchSize, shuffle=True)
 
         # Initialise the discriminator network
         self.discriminator = Discriminator(features=config.discFeatures, imgChannels=self.imgChannels)
 
-        # Initialise the generator network, first create the reverse-masked image
-
+        # Initialise the generator network
+        # first create the reverse-masked image
         self.generator = Generator(features=config.genFeatures, imgChannels=self.imgChannels)
 
         # initialise optimiser functions for Generator and Discriminator
-        self.discOpt = optim.Adam()
-        self.genOpt = optim.Adam()
+        self.discOpt = optim.Adam(params=self.discriminator.parameters(),
+                                  lr=config.discLR,
+                                  betas=(config.beta1, config.beta2),
+                                  eps=config.epsilon)
+        self.genOpt = optim.Adam(params=self.generator.parameters(),
+                                 lr=config.genLR,
+                                 betas=(config.beta1, config.beta2),
+                                 eps=config.epsilon)
+
+    def buildGAN(self, discriminator, generator):
+        if torch.cuda.is_available():
+            image = torch.cuda.ByteTensor(self.imgSize, self.imgSize, self.imgChannels)
+            mask = torch.cuda.ByteTensor(self.imgSize, self.imgSize, self.imgChannels)
+        else:
+            image = torch.ByteTensor(self.imgSize, self.imgSize, self.imgChannels)
+            mask = torch.ByteTensor(self.imgSize, self.imgSize, self.imgChannels)
+
+        # generator creates fake image
+        genOutput = generator([image, mask])
+
+        # train generator only for the combined model
+
+        # discriminator assesses the generated image
+        genImg = (lambda x: x[:, :, :, 0:3])(genOutput)
+        score = discriminator(genImg)
+
+        # return
+
+
+
+
 
