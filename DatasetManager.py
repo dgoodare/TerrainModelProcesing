@@ -2,6 +2,15 @@ from PIL import Image
 import numpy as np
 import os
 
+"""
+    Includes functions for applying masks to images and creating a lookup table that contains:
+        - the original (ground truth) images
+        - several versions of each image with different masks applied
+        - the shape of the mask, for each masked image
+        
+    It also contains a modified version of the PyTorch Dataset class 
+"""
+
 
 def CreateSquareMask(image, holeSize):
     # create a matrix with the same size as the input image and fill it with 1s
