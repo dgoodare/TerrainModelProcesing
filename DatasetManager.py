@@ -2,6 +2,7 @@ from PIL import Image
 import numpy as np
 import os
 from torch.utils.data import Dataset
+import csv
 
 """
     Includes functions for applying masks to images and creating a lookup table that contains:
@@ -68,13 +69,15 @@ def saveMaskToFile(outDir, filename, content):
 
 
 def applyMasks(inputDir, imageOut, maskOut):
-    """Applies selection of masks to all images in a given image directory and saves the resulting and the
-        corresponding mask to files in separate output folders
+    """ Applies selection of masks to all images in a given image directory and saves the resulting and the
+        corresponding mask to files in separate output folders.
+        Returns a list, where each item is a row to be written to a .csv file
     """
     inputDir = inputDir
     imageOutDir = imageOut
     maskOutDir = maskOut
     counter = 0
+    outputList = []
 
     # open input directory and iterate through the images
     for img in os.listdir(inputDir):
@@ -111,8 +114,14 @@ def applyMasks(inputDir, imageOut, maskOut):
         stripMaskFile = str(counter) + "_stripMask" + ".npy"
         saveMaskToFile(maskOutDir, stripMaskFile, stripMask)
 
+        # add file info to output list
+        row = [img, squareImageFile, squareMaskFile, stripImageFile, stripMaskFile]
+        outputList.append(row)
+
         # increment counter
         counter += 1
+
+    return outputList
 
 
 class DEMDataset(Dataset):
@@ -127,4 +136,19 @@ class DEMDataset(Dataset):
         return
 
 
-applyMasks('inputImages', 'outputImages/', 'outputMasks/')
+csvFields = ['Original Filename',
+             'Square image filename',
+             'Square mask filename',
+             'Strip image filename',
+             'Strip mask filename']
+
+csvRows = applyMasks('inputImages', 'outputImages/', 'outputMasks/')
+
+# csv filename
+csvFile = 'lookUpTable.csv'
+
+# write to csv file
+with open(csvFile, 'w') as csvFile:
+    csvWriter = csv.writer(csvFile, dialect='excel')
+    csvWriter.writerow(csvFields)
+    csvWriter.writerows(csvRows)
