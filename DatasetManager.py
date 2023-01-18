@@ -142,13 +142,21 @@ csvFields = ['Original Filename',
              'Strip image filename',
              'Strip mask filename']
 
-csvRows = applyMasks('inputImages', 'outputImages/', 'outputMasks/')
 
-# csv filename
-csvFile = 'lookUpTable.csv'
+def createLookUp():
+    csvRows = applyMasks('inputImages', 'outputImages/', 'outputMasks/')
 
-# write to csv file
-with open(csvFile, 'w') as csvFile:
-    csvWriter = csv.writer(csvFile, dialect='excel')
-    csvWriter.writerow(csvFields)
-    csvWriter.writerows(csvRows)
+    # csv filename
+    csvFile = 'lookUpTable.csv'
+
+    try:
+        # write to csv file
+        with open(csvFile, 'w') as csvFile:
+            csvWriter = csv.writer(csvFile, dialect='excel')
+            csvWriter.writerow(csvFields)
+            csvWriter.writerows(csvRows)
+    except OSError:
+        print("Failed to create lookUpTable.csv")
+
+
+createLookUp()
