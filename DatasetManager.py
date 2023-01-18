@@ -14,6 +14,9 @@ from torch.utils.data import Dataset
 
 
 def CreateSquareMask(image, holeSize):
+    """ Adds a square mask to an image
+        Returns the resulting image and the corresponding mask as a tuple
+    """
     # create a matrix with the same size as the input image and fill it with 1s
     mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
     # define the mask boundaries
@@ -29,6 +32,9 @@ def CreateSquareMask(image, holeSize):
 
 
 def CreateStripMask(image, holeWidth):
+    """ Adds a horizontal strip mask to an image
+        Returns the resulting image and the corresponding mask as a tuple
+        """
     # create a matrix with the same size as the input image and fill it with 1s
     mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
     # define the mask boundaries
@@ -43,8 +49,31 @@ def CreateStripMask(image, holeWidth):
     return image, mask
 
 
-def applyMasks(inputDir):
+def saveImageToFile(outDir, filename, content):
+    """Saves a PIL image object to a JPEG file"""
+    try:
+        content.save(outDir + filename, 'JPEG')
+        print(f"{filename} saved to output folder")
+    except OSError:
+        print(f"{filename} could not be saved, or the file only contains partial data")
+
+
+def saveMaskToFile(outDir, filename, content):
+    """Saves a numpy array object to a npy file"""
+    try:
+        np.save(outDir + filename, content)
+        print(f"{filename} saved to output folder")
+    except OSError:
+        print(f"{filename} could not be saved, or the file only contains partial data")
+
+
+def applyMasks(inputDir, imageOut, maskOut):
+    """Applies selection of masks to all images in a given image directory and saves the resulting and the
+        corresponding mask to files in separate output folders
+    """
     inputDir = inputDir
+    imageOutDir = imageOut
+    maskOutDir = maskOut
     counter = 0
 
     # open input directory and iterate through the images
@@ -59,26 +88,28 @@ def applyMasks(inputDir):
 
         # convert to numpy array
         imgArray = np.array(originalImg)
-        # add masks
-        squareMask = CreateSquareMask(imgArray, 128)[0]
-        stripMask = CreateStripMask(imgArray, 32)[0]
 
-        # create file names
-        squareFile = str(counter) + "squareMask" + ".jpg"
-        stripFile = str(counter) + "stripMask" + ".jpg"
+        # add masks to images
+        squareImage = CreateSquareMask(imgArray, 128)[0]
+        stripImage = CreateStripMask(imgArray, 32)[0]
+        # retrieve mask info
+        squareMask = CreateSquareMask(imgArray, 128)[1]
+        stripMask = CreateStripMask(imgArray, 32)[1]
 
-        # save in output folder
-        try:
-            squareMask.save('outputImages/' + squareFile, 'JPEG')
-            print(f"{squareFile} saved to output folder")
-        except OSError:
-            print(f"{squareFile} could not be saved, or the file only contains partial data")
+        # create file names for images and masks and save to file
+        # images
+        squareImageFile = str(counter) + "_squareImage" + ".jpg"
+        saveImageToFile(imageOutDir, squareImageFile, squareImage)
 
-        try:
-            stripMask.save('outputImages/' + stripFile, 'JPEG')
-            print(f"{stripFile} saved to output folder")
-        except OSError:
-            print(f"{stripFile} could not be saved, or the file only contains partial data")
+        stripImageFile = str(counter) + "_stripImage" + ".jpg"
+        saveImageToFile(imageOutDir, stripImageFile, stripImage)
+
+        # masks
+        squareMaskFile = str(counter) + "_squareMask" + ".npy"
+        saveMaskToFile(maskOutDir, squareMaskFile, squareMask)
+
+        stripMaskFile = str(counter) + "_stripMask" + ".npy"
+        saveMaskToFile(maskOutDir, stripMaskFile, stripMask)
 
         # increment counter
         counter += 1
@@ -96,4 +127,4 @@ class DEMDataset(Dataset):
         return
 
 
-applyMasks('inputImages')
+applyMasks('inputImages', 'outputImages/', 'outputMasks/')
