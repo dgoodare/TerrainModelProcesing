@@ -2,7 +2,6 @@ from PIL import Image
 from itertools import product
 import numpy as np
 import os
-from torch.utils.data import Dataset
 import csv
 
 """
@@ -67,7 +66,6 @@ def saveImageToFile(outDir, filename, content):
     """Saves a PIL image object to a JPEG file"""
     try:
         content.save(outDir + filename, 'JPEG')
-        print(f"{filename} saved to output folder")
     except OSError:
         print(f"{filename} could not be saved, or the file only contains partial data")
 
@@ -76,7 +74,6 @@ def saveMaskToFile(outDir, filename, content):
     """Saves a numpy array object to a npy file"""
     try:
         np.save(outDir + filename, content)
-        print(f"{filename} saved to output folder")
     except OSError:
         print(f"{filename} could not be saved, or the file only contains partial data")
 
@@ -105,12 +102,9 @@ def applyMasks(inputDir, imageOut, maskOut):
         # convert to numpy array
         imgArray = np.array(originalImg)
 
-        # add masks to images
-        squareImage = CreateSquareMask(imgArray, 128)[0]
-        stripImage = CreateStripMask(imgArray, 32)[0]
-        # retrieve mask info
-        squareMask = CreateSquareMask(imgArray, 128)[1]
-        stripMask = CreateStripMask(imgArray, 32)[1]
+        # add masks to images and store mask info
+        squareImage, squareMask = CreateSquareMask(imgArray, 8)
+        stripImage, stripMask = CreateStripMask(imgArray, 2)
 
         # create file names for images and masks and save to file
         # images
@@ -134,33 +128,20 @@ def applyMasks(inputDir, imageOut, maskOut):
         # increment counter
         counter += 1
 
+    print('Masks applied...')
     return outputList
 
 
-class DEMDataset(Dataset):
-    """A modified version of the PyTorch Dataset class"""
-    def __init__(self):
-        return
-
-    def __len__(self):
-        return
-
-    def __getitem__(self, item):
-        return
-
-
-csvFields = ['Original Filename',
-             'Square image filename',
-             'Square mask filename',
-             'Strip image filename',
-             'Strip mask filename']
-
-
 def createLookUp():
-    csvRows = applyMasks('inputImages', 'maskedImages/', 'outputMasks/')
-
+    csvRows = applyMasks('slicedImages', 'maskedImages/', 'outputMasks/')
     # csv filename
     csvFile = 'lookUpTable.csv'
+    # column names for csv file
+    csvFields = ['Original Filename',
+                 'Square image filename',
+                 'Square mask filename',
+                 'Strip image filename',
+                 'Strip mask filename']
 
     try:
         # write to csv file
@@ -168,12 +149,24 @@ def createLookUp():
             csvWriter = csv.writer(csvFile, dialect='excel')
             csvWriter.writerow(csvFields)
             csvWriter.writerows(csvRows)
+
+        print('Lookup table created...')
     except OSError:
         print("Failed to create lookUpTable.csv")
 
 
-# createLookUp()
+def main():
+    inputDir = 'inputImages'
+    outputDir = 'slicedImages'
+    tileSize = 64
 
-# sliceImages('inputImages/image1.jpeg', 250)
+    # slice original images into smaller squares
+    for img in os.listdir(inputDir):
+        sliceImage(img, inputDir, outputDir, tileSize)
+    print('Images sliced...')
 
-sliceImage('image1.jpeg', 'inputImages', 'slicedImages', 250)
+    # apply masks and create lookup table
+    createLookUp()
+
+
+main()
