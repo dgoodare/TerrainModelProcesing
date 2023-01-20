@@ -1,4 +1,5 @@
 from PIL import Image
+from itertools import product
 import numpy as np
 import os
 from torch.utils.data import Dataset
@@ -12,6 +13,18 @@ import csv
         
     It also contains a modified version of the PyTorch Dataset class 
 """
+
+
+def sliceImage(filename, dir_in, dir_out, d):
+    name, ext = os.path.splitext(filename)
+    img = Image.open(os.path.join(dir_in, filename))
+    w, h = img.size
+
+    grid = product(range(0, h - h % d, d), range(0, w - w % d, d))
+    for i, j in grid:
+        box = (j, i, j + d, i + d)
+        out = os.path.join(dir_out, f'{name}_{i}_{j}{ext}')
+        img.crop(box).save(out)
 
 
 def CreateSquareMask(image, holeSize):
@@ -144,7 +157,7 @@ csvFields = ['Original Filename',
 
 
 def createLookUp():
-    csvRows = applyMasks('inputImages', 'outputImages/', 'outputMasks/')
+    csvRows = applyMasks('inputImages', 'maskedImages/', 'outputMasks/')
 
     # csv filename
     csvFile = 'lookUpTable.csv'
@@ -159,4 +172,8 @@ def createLookUp():
         print("Failed to create lookUpTable.csv")
 
 
-createLookUp()
+# createLookUp()
+
+# sliceImages('inputImages/image1.jpeg', 250)
+
+sliceImage('image1.jpeg', 'inputImages', 'slicedImages', 250)
