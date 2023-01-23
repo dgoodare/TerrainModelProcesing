@@ -3,23 +3,26 @@ from itertools import product
 import numpy as np
 import os
 import csv
+import time
 
 """
     Includes functions for applying masks to images and creating a lookup table that contains:
         - the original (ground truth) images
         - several versions of each image with different masks applied
         - the shape of the mask, for each masked image
-        
-    It also contains a modified version of the PyTorch Dataset class 
 """
 
 
 def sliceImage(filename, dir_in, dir_out, d):
+    """Slices an input image into squares of size d"""
     name, ext = os.path.splitext(filename)
     img = Image.open(os.path.join(dir_in, filename))
     w, h = img.size
 
+    # create a grid with grid size d
     grid = product(range(0, h - h % d, d), range(0, w - w % d, d))
+
+    # iterate through the grid saving each image to a file
     for i, j in grid:
         box = (j, i, j + d, i + d)
         out = os.path.join(dir_out, f'{name}_{i}_{j}{ext}')
@@ -156,6 +159,7 @@ def createLookUp():
 
 
 def main():
+    startTime = time.time()
     inputDir = 'inputImages'
     outputDir = 'slicedImages'
     tileSize = 64
@@ -167,6 +171,7 @@ def main():
 
     # apply masks and create lookup table
     createLookUp()
+    print(f"Dataset created in {time.time()-startTime} seconds")
 
 
 main()
