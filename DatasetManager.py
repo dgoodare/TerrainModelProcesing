@@ -68,7 +68,7 @@ def CreateStripMask(image, holeWidth):
 def saveImageToFile(outDir, filename, content):
     """Saves a PIL image object to a JPEG file"""
     try:
-        content.save(outDir + filename, 'JPEG')
+        content.save(outDir + filename, 'PNG')
     except OSError:
         print(f"{filename} could not be saved, or the file only contains partial data")
 
@@ -111,10 +111,10 @@ def applyMasks(inputDir, imageOut, maskOut):
 
         # create file names for images and masks and save to file
         # images
-        squareImageFile = str(counter) + "_squareImage" + ".jpg"
+        squareImageFile = str(counter) + "_squareImage" + ".png"
         saveImageToFile(imageOutDir, squareImageFile, squareImage)
 
-        stripImageFile = str(counter) + "_stripImage" + ".jpg"
+        stripImageFile = str(counter) + "_stripImage" + ".png"
         saveImageToFile(imageOutDir, stripImageFile, stripImage)
 
         # masks
