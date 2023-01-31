@@ -26,13 +26,17 @@ class DEMDataset(Dataset):
         stripImgPath = os.path.join(self.rootDir, self.lookUp.iloc[index, 3])
         stripMaskPath = os.path.join(self.rootDir, self.lookUp.iloc[index, 4])
 
+        groundTruthDir = 'slicedImages/'
+        maskedImagesDir = 'maskedImages/'
+        maskDir = 'outputMasks/'
+
         # read the image
-        groundTruth = Image.open(imgPath)
+        groundTruth = Image.open(groundTruthDir + imgPath)
         # get masked images and their corresponding masks and convert them to tensor objects
-        squareImg = torch.tensor(Image.open(squareImgPath))
-        squareMask = torch.tensor(np.load(squareMaskPath))
-        stripImg = torch.tensor(Image.open(stripImgPath))
-        stripMask = torch.tensor(np.load(stripMaskPath))
+        squareImg = torch.tensor(Image.open(maskedImagesDir + squareImgPath))
+        squareMask = torch.tensor(np.load(maskDir + squareMaskPath))
+        stripImg = torch.tensor(Image.open(maskedImagesDir + stripImgPath))
+        stripMask = torch.tensor(np.load(maskDir + stripMaskPath))
 
         # apply transformations if they have been specified
         if self.transform:

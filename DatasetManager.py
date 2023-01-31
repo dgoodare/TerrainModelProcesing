@@ -138,7 +138,7 @@ def applyMasks(inputDir, imageOut, maskOut):
 def createLookUp():
     csvRows = applyMasks('slicedImages', 'maskedImages/', 'outputMasks/')
     # csv filename
-    csvFile = 'lookUpTable.csv'
+    csvFile = 'LookUp/lookUpTable.csv'
     # column names for csv file
     csvFields = ['Original Filename',
                  'Square image filename',
@@ -162,7 +162,7 @@ def main():
     startTime = time.time()
     inputDir = 'inputImages'
     outputDir = 'slicedImages'
-    tileSize = 64
+    tileSize = 256
 
     # slice original images into smaller squares
     for img in os.listdir(inputDir):
