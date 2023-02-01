@@ -64,7 +64,11 @@ class RMNet:
 
         # create and load dataset
         self.dataSet = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=imageTransforms)
-        self.dataLoader = DataLoader(dataset=self.dataSet, batch_size=self.batchSize, shuffle=True)
+        # split into training and testing datasets
+        trainSet, testSet = torch.utils.data.random_split(self.dataSet, [10000, 2500])
+        # create dataloaders for each
+        self.trainLoader = DataLoader(dataset=trainSet, batch_size=self.batchSize, shuffle=True)
+        self.testLoader = DataLoader(dataset=testSet, batch_size=self.batchSize, shuffle=True)
 
         # Initialise the discriminator network
         self.discriminator = Discriminator(features=config.discFeatures, imgChannels=self.imgChannels)
