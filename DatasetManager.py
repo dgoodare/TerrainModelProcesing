@@ -1,6 +1,7 @@
 from PIL import Image
 from itertools import product
 import numpy as np
+from skimage.draw import disk, ellipse, polygon
 import os
 import csv
 import time
@@ -65,6 +66,57 @@ def CreateStripMask(image, holeWidth):
     return image, mask
 
 
+def CreateCircleMask(image, radius):
+    """Adds a circular mask to an image"""
+    # create numpy array to store the mask
+    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+
+    # define the centre of the circle to be the centre of the image
+    c_x, c_y = int(image.shape[0]/2), int(image.shape[1]/2)
+    r, c = disk((c_x, c_y), 10)
+    mask[r, c] = 0
+
+    imageArray = np.multiply(image, mask)
+    image = Image.fromarray(np.uint8(imageArray))
+    return image, mask
+
+
+def CreateEllipseMask(image, r_radius, c_radius):
+    """Adds an elliptical mask to an image"""
+    # create numpy array
+    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    # set the centre of the ellipse to be the centre of the image
+    c_x, c_y = int(image.shape[0]/2), int(image.shape[1]/2)
+    r, c = ellipse(c_x, c_y, r_radius, c_radius)
+    mask[r, c] = 0
+
+    imageArray = np.multiply(image, mask)
+    image = Image.fromarray(np.uint8(imageArray))
+    return image, mask
+
+
+def CreatePolygonMask(image):
+    """Adds a polygon mask to an image"""
+    # create numpy array
+    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    # define coordinates for the vertices of the polygon
+    a = [int(image.shape[1]/2), int(image.shape[0]/2)]  # centre of the image
+    b = [int(image.shape[0]/2), 0]  # centre at the top edge
+    c = [int(3*image.shape[0]/5), 0]  # 3/5 along the top edge
+    # define row coordinates
+    rows = np.array([a[1], b[1], c[1]])
+    # define column coordinates
+    cols = np.array([a[0], b[0], c[0]])
+    # create polygon
+    r, c = polygon(rows, cols)
+    # fill mask
+    mask[r, c] = 0
+
+    imageArray = np.multiply(image, mask)
+    image = Image.fromarray(np.uint8(imageArray))
+    return image, mask
+
+
 def saveImageToFile(outDir, filename, content):
     """Saves a PIL image object to a JPEG file"""
     try:
@@ -106,26 +158,26 @@ def applyMasks(inputDir, imageOut, maskOut):
         imgArray = np.array(originalImg)
 
         # add masks to images and store mask info
-        squareImage, squareMask = CreateSquareMask(imgArray, 8)
-        stripImage, stripMask = CreateStripMask(imgArray, 2)
+        ellipseImage, ellipseMask = CreateEllipseMask(imgArray, 40, 20)
+        polyImage, polyMask = CreatePolygonMask(imgArray)
 
         # create file names for images and masks and save to file
         # images
-        squareImageFile = str(counter) + "_squareImage" + ".png"
-        saveImageToFile(imageOutDir, squareImageFile, squareImage)
+        ellipseImageFile = str(counter) + "_ellipseImage" + ".png"
+        saveImageToFile(imageOutDir, ellipseImageFile, ellipseImage)
 
-        stripImageFile = str(counter) + "_stripImage" + ".png"
-        saveImageToFile(imageOutDir, stripImageFile, stripImage)
+        polyImageFile = str(counter) + "polyImage" + ".png"
+        saveImageToFile(imageOutDir, polyImageFile, polyImage)
 
         # masks
-        squareMaskFile = str(counter) + "_squareMask" + ".npy"
-        saveMaskToFile(maskOutDir, squareMaskFile, squareMask)
+        ellipseMaskFile = str(counter) + "_ellipseMask" + ".npy"
+        saveMaskToFile(maskOutDir, ellipseMaskFile, ellipseMask)
 
-        stripMaskFile = str(counter) + "_stripMask" + ".npy"
-        saveMaskToFile(maskOutDir, stripMaskFile, stripMask)
+        polyMaskFile = str(counter) + "_polyMask" + ".npy"
+        saveMaskToFile(maskOutDir, polyMaskFile, polyMask)
 
         # add file info to output list
-        row = [img, squareImageFile, squareMaskFile, stripImageFile, stripMaskFile]
+        row = [img, ellipseImageFile, ellipseMaskFile, polyImageFile, polyMaskFile]
         outputList.append(row)
 
         # increment counter
@@ -140,11 +192,11 @@ def createLookUp():
     # csv filename
     csvFile = 'LookUp/lookUpTable.csv'
     # column names for csv file
-    csvFields = ['Original Filename',
-                 'Square image filename',
-                 'Square mask filename',
-                 'Strip image filename',
-                 'Strip mask filename']
+    csvFields = ['Original image',
+                 'Ellipse image',
+                 'Ellipse mask',
+                 'Polygon image',
+                 'Polygon mask']
 
     try:
         # write to csv file
@@ -175,3 +227,4 @@ def main():
 
 
 main()
+

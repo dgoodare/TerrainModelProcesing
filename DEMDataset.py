@@ -57,14 +57,14 @@ cols, rows = 3, 3
 for i in range(1, cols * rows + 1):
     sampleIdx = torch.randint(len(dataset), size=(1,)).item()
     originalImg = dataset[sampleIdx][0]
-    square = dataset[sampleIdx][1]
-    strip = dataset[sampleIdx][3]
+    ellipse = dataset[sampleIdx][1]
+    poly = dataset[sampleIdx][3]
 
-    axs[0].set_title(str(sampleIdx) + " Ground truth")
+    axs[0].set_title(str(sampleIdx) + ": Ground truth")
     axs[0].imshow(originalImg)
-    axs[1].set_title(str(sampleIdx) + " Square mask")
-    axs[1].imshow(square)
-    axs[2].set_title(str(sampleIdx) + " Strip mask")
-    axs[2].imshow(strip)
+    axs[1].set_title(str(sampleIdx) + ": Ellipse mask")
+    axs[1].imshow(ellipse)
+    axs[2].set_title(str(sampleIdx) + ": Polygon mask")
+    axs[2].imshow(poly)
 
 plt.show()
