@@ -9,7 +9,6 @@ from torchvision import datasets, models, transforms
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
 
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -106,7 +105,22 @@ class RMNet:
 
         # return
 
+    def discriminator_loss(self, real, fake):
+        """Wasserstein loss function"""
+        return -(torch.mean(real) - torch.mean(fake))
 
+    def generator_loss(self, real, fake):
+        mask = real[:, :, :, 3:]
+        reversedMask = ReverseMask(mask)
 
+        inputImg = real[:, :, :, 0:3]
+        outputImg = fake[:, :, :, 0:3]
 
+        # use pretrained weights from the VGG19 model
+        vgg = models.vgg19(weights='IMAGENET1K_V1')
+        vggOutput = vgg.features[:?]
 
+        pass
+
+    def train(self):
+        pass

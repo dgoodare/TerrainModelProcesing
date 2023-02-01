@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 
@@ -123,6 +124,12 @@ class Generator(nn.Module):
         self.features /= 2
 
         output = self.decodeLayer(output)
-        output = self.outputLayer(output)
+        decodedOutput = self.outputLayer(output)
+
+        # this will need to be altered
+        reversedMaskImg = torch.multiply(decodedOutput, self.mask)
+        outputImg = torch.add(self.maskedImg, reversedMaskImg)
+        concatOutput = torch.concat(outputImg, self.mask)
+
 
         return output
