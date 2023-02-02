@@ -262,8 +262,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_tl_edge_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         # Top right edge
         if shapeList[1]:
@@ -272,8 +272,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_tr_edge_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         # Top left strip
         if shapeList[2]:
@@ -282,8 +282,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_tl_strip_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         # Bottom right strip
         if shapeList[3]:
@@ -292,8 +292,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_br_strip_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         # Square
         if shapeList[4]:
@@ -302,8 +302,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_sqr_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         # Centre strip
         if shapeList[5]:
@@ -312,8 +312,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_c_strip_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         # Circle
         if shapeList[6]:
@@ -322,8 +322,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_circle_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         # Ellipse
         if shapeList[7]:
@@ -332,8 +332,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_ellipse_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         # Polygon
         if shapeList[8]:
@@ -342,8 +342,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_poly_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(imgFile)
-            row.append(maskFile)
+            row.append(str(counter) + imgFile)
+            row.append(str(counter) + maskFile)
 
         outputList.append(row)
 
@@ -444,7 +444,7 @@ def main():
     startTime = time.time()
     inputDir = 'inputImages'
     outputDir = 'slicedImages'
-    tileSize = 64
+    tileSize = 512
 
     # slice original images into smaller squares
     for img in os.listdir(inputDir):
