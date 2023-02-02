@@ -68,25 +68,25 @@ class DEMDataset(Dataset):
         return groundTruth, tl_e_img, tl_e_mask, tr_e_img, tr_e_mask, tl_s_img, tl_s_mask, br_s_img, br_s_mask, c_s_img, c_s_mask
 
 
+"""Create an example dataset and display a random sample from it"""
+
 dataset = DEMDataset('lookUpTable.csv', 'LookUp',)
 
-figure, axs = plt.subplots(nrows=6, figsize=(6, 6))
-cols, rows = 6, 6
-for i in range(1, cols * rows):
-    sampleIdx = torch.randint(len(dataset), size=(1,)).item()
-    originalImg = dataset[sampleIdx][0]
-    tl_e = dataset[sampleIdx][1]
-    tr_e = dataset[sampleIdx][3]
-    tl_s = dataset[sampleIdx][5]
-    br_s = dataset[sampleIdx][7]
-    c_s = dataset[sampleIdx][9]
+sampleIdx = torch.randint(len(dataset), size=(1,)).item()
+originalImg = dataset[sampleIdx][0]
+tl_e = dataset[sampleIdx][1]
+tr_e = dataset[sampleIdx][3]
+tl_s = dataset[sampleIdx][5]
+br_s = dataset[sampleIdx][7]
+c_s = dataset[sampleIdx][9]
 
-    axs[0].set_title(str(sampleIdx) + ": Ground truth")
-    axs[0].imshow(originalImg)
-    axs[1].imshow(tl_e)
-    axs[2].imshow(tr_e)
-    axs[3].imshow(tl_s)
-    axs[4].imshow(br_s)
-    axs[5].imshow(c_s)
+f, ax = plt.subplots(2, 3)
+ax[0, 0].set_title(str(sampleIdx) + ": Ground truth")
+ax[0, 0].imshow(originalImg)
+ax[0, 1].imshow(tl_e)
+ax[0, 2].imshow(tr_e)
+ax[1, 0].imshow(tl_s)
+ax[1, 1].imshow(br_s)
+ax[1, 2].imshow(c_s)
 
 plt.show()
