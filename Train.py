@@ -15,11 +15,24 @@ import matplotlib.pyplot as plt
 import time
 import os
 import copy
+import random
 
 
-def reverse_mask(mask):
+def reverse_mask(x):
     """A function to reverse an image mask"""
-    return 1-mask
+    return 1-x
+
+
+def select_mask_type():
+    types = {
+        1: 1,  # tl_edge
+        2: 3,  # tr_edge
+        3: 5,  # tl_strip
+        4: 7,  # br_strip
+        5: 9   # c_strip
+    }
+    i = random.randint(1, 5)
+    return types[i]
 
 
 def discriminator_loss(x, y):
@@ -32,19 +45,21 @@ def discriminator_loss(x, y):
     return -(torch.mean(x) - torch.mean(y))
 
 
-def generator_loss(x, y):
+def generator_loss(x, y, disc_loss):
     """
     Loss function for generator network
     :param x: real
     :param y: fake
+    :param disc_loss: the inverse of the loss of the discriminator
     :return:
     """
+    # TODO: define a proper loss function
     mask = x[:, :, :, 3:]
     reversedMask = reverse_mask(mask)
 
     inputImg = x[:, :, :, 0:3]
     outputImg = y[:, :, :, 0:3]
-    pass
+    return disc_loss
 
 
 # Define Hyper-parameters
@@ -68,7 +83,7 @@ transforms = transforms.Compose(
     [
         transforms.Resize(Img_Size),
         transforms.ToTensor(),
-        # transforms.Normalize() - check with Iain if there are upper and lower limits for DEMs
+        # transforms.Normalize() - TODO: check with Iain if there are upper and lower limits for DEMs
     ]
 )
 
@@ -78,6 +93,7 @@ Dataset_size = dataset.__len__()
 # split into training and testing sets with an 80/20 ratio
 trainingSet, testingSet = torch.utils.data.random_split(dataset, [(Dataset_size*8/10), (Dataset_size*2/10)])
 # create dataloaders for each set
+# TODO: look into multi-processing
 trainingLoader = DataLoader(dataset=trainingSet, batch_size=Batch_size, shuffle=True)
 testingLoader = DataLoader(dataset=testingSet, batch_size=Batch_size, shuffle=True)
 
@@ -110,14 +126,20 @@ disc.train()
 
 
 for epoch in range(Num_epochs):
-    for batch_idx, (real, _) in enumerate(trainingLoader):
+    for batch_idx, sample in enumerate(trainingLoader):
         print(f"Batch index: {batch_idx}")
-        real = real.to(device)
+        # choose which mask type to use for this epoch
+        maskID = select_mask_type()
+        # retrieve ground truth, masked image, and corresponding mask
+        real = sample[0].to(device)
+        maskedImg = sample[maskID].to(device)
+        mask = sample[maskID+1].to(device)
 
         # train discriminator
         for _ in range(Disc_iters):
             noise = torch.randn((Batch_size, Z_dim, 1, 1)).to(device)
-            fake = gen(noise)
+            # TODO: make sure masks are passed properly as parameters
+            fake = gen(noise, maskedImg, mask)
             disc_real = disc(real).reshape(-1)
             disc_fake = disc(fake).reshape(-1)
             loss_disc = discriminator_loss(disc_real, disc_fake)
@@ -130,7 +152,7 @@ for epoch in range(Num_epochs):
 
         # train generator
         output = disc(fake).reshape(-1)
-        loss_gen = -torch.mean(output)
+        loss_gen = generator_loss(real, fake, -torch.mean(output))
         gen.zero_grad()
         loss_gen.backward()
         opt_gen.step()
@@ -138,8 +160,9 @@ for epoch in range(Num_epochs):
         # display results at specified intervals
         if batch_idx % 100 == 0:
             print(
-                f"Epoch [{epoch}/{Num_epochs}] --- Batch [{batch_idx}/{len(trainingLoader)}]"
-                f"Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
+                f"========================================="
+                f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}]"
+                f"|| Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
             )
 
             with torch.no_grad():

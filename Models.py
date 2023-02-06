@@ -7,7 +7,7 @@ def initialise_weights(model):
     Initialises the weights for a nn model
     """
     for module in model.modules():
-        if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d, nn.BatchNorm2d)):  # check if these modules are correct
+        if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d, nn.BatchNorm2d)):  # TODO: check if these are correct
             nn.init.normal_(module.weight.data, 0.0, 0.02)
 
 
@@ -151,7 +151,7 @@ class Generator(nn.Module):
         output = self.decodeLayer(output)
         decodedOutput = self.outputLayer(output)
 
-        # this will need to be altered
+        # TODO: this is a critical stage for reverse-mask in-painting
         reversedMaskImg = torch.multiply(decodedOutput, self.mask)
         outputImg = torch.add(self.maskedImg, reversedMaskImg)
         concatOutput = torch.concat(outputImg, self.mask)
