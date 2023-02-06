@@ -2,6 +2,31 @@ import torch
 import torch.nn as nn
 
 
+def initialise_weights(model):
+    """
+    Initialises the weights for a nn model
+    """
+    for module in model.modules():
+        if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d, nn.BatchNorm2d)):  # check if these modules are correct
+            nn.init.normal_(module.weight.data, 0.0, 0.02)
+
+
+def test():
+    N, in_channels, H, W = 8, 2, 64, 64
+    z_dim = 100
+    x = torch.randn((N, in_channels, H, W))
+    disc = Discriminator(in_channels, 8)
+    initialise_weights(disc)
+    assert disc(x).shape == (N, 1, 1, 1)
+    print("Discriminator created...")
+
+    gen = Generator(z_dim, in_channels, 8)
+    initialise_weights(gen)
+    z = torch.randn((N, z_dim, 1, 1))
+    assert gen(z).shape == (N, in_channels, H, W)
+    print("Generator created...")
+
+
 class Discriminator(nn.Module):
     """A class to represent a discriminator within a GAN"""
 
@@ -131,5 +156,7 @@ class Generator(nn.Module):
         outputImg = torch.add(self.maskedImg, reversedMaskImg)
         concatOutput = torch.concat(outputImg, self.mask)
 
-
         return output
+
+
+test()
