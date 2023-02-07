@@ -7,8 +7,10 @@ from torch.utils.data import DataLoader  # module for iterating over a dataset
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
+import DatasetManager
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -54,8 +56,8 @@ def generator_loss(x, y, disc_loss):
     :return:
     """
     # TODO: define a proper loss function
-    mask = x[:, :, :, 3:]
-    reversedMask = reverse_mask(mask)
+    input_mask = x[:, :, :, 3:]
+    reversedMask = reverse_mask(input_mask)
 
     inputImg = x[:, :, :, 0:3]
     outputImg = y[:, :, :, 0:3]
@@ -66,10 +68,10 @@ def generator_loss(x, y, disc_loss):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Learning_rate = 5e-5
 Batch_size = 64
-Img_Size = 64  # include function to determine this automatically
+Img_Size = DatasetManager.img_size
 Img_channels = 2
 Z_dim = 100  # check what this actually is
-Num_epochs = 5
+Num_epochs = 1
 Features_disc = 64
 Features_gen = 64
 Disc_iters = 5
@@ -81,7 +83,6 @@ epsilon = 1e-08
 # transformations applied to datasets
 transforms = transforms.Compose(
     [
-        transforms.Resize(Img_Size),
         transforms.ToTensor(),
         # transforms.Normalize() - TODO: check with Iain if there are upper and lower limits for DEMs
     ]
@@ -90,17 +91,24 @@ transforms = transforms.Compose(
 # load the dataset
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
+print("Dataset loaded...")
+print(f"Dataset size: {Dataset_size}")
 # split into training and testing sets with an 80/20 ratio
-trainingSet, testingSet = torch.utils.data.random_split(dataset, [(Dataset_size*8/10), (Dataset_size*2/10)])
+trainingSet, testingSet = torch.utils.data.random_split(dataset, [int(Dataset_size*8/10), int(Dataset_size*2/10)])
+print("Dataset split...")
 # create dataloaders for each set
 # TODO: look into multi-processing
 trainingLoader = DataLoader(dataset=trainingSet, batch_size=Batch_size, shuffle=True)
+print("training loader created...")
 testingLoader = DataLoader(dataset=testingSet, batch_size=Batch_size, shuffle=True)
+print("testing loader created...")
 
 
 # Initialise the two networks
-gen = Generator(imgChannels=Img_channels, features=Features_gen)
-disc = Discriminator(imgChannels=Img_channels, features=Features_disc)
+gen = Generator(Z=Z_dim, imgChannels=Img_channels, features=Features_gen).to(device)
+print("generator initialised...")
+disc = Discriminator(imgChannels=Img_channels, features=Features_disc).to(device)
+print("discriminator initialised...")
 # initialise weights
 
 # Optimiser Functions
@@ -112,17 +120,21 @@ opt_disc = optim.Adam(params=disc.parameters(),
                       lr=Learning_rate,
                       betas=(beta1, beta2),
                       eps=epsilon)
+print("optimisers defined...")
 
 # Define random noise to being training with
-fixed_noise = torch.randn(32, Z_dim, 1, 1).to(device)
+fixed_noise = torch.randn(32, Img_channels, 1, 1).to(device)
 
 # Data Visualisation stuff
 writer_real = SummaryWriter(f"logs/real")
 writer_fake = SummaryWriter(f"logs/fake")
+print("Summary writers created...")
 
 step = 0
 gen.train()
 disc.train()
+print(gen)
+print("ready to train...")
 
 
 for epoch in range(Num_epochs):
@@ -134,12 +146,15 @@ for epoch in range(Num_epochs):
         real = sample[0].to(device)
         maskedImg = sample[maskID].to(device)
         mask = sample[maskID+1].to(device)
+        print(f"Real size: {real.shape}")
+        print(f"Masked Img size: {maskedImg.shape}")
+        print(f"Mask size: {mask.shape}")
 
         # train discriminator
         for _ in range(Disc_iters):
             noise = torch.randn((Batch_size, Z_dim, 1, 1)).to(device)
             # TODO: make sure masks are passed properly as parameters
-            fake = gen(noise, maskedImg, mask)
+            fake = gen(x=noise, maskedImg=maskedImg, mask=mask)
             disc_real = disc(real).reshape(-1)
             disc_fake = disc(fake).reshape(-1)
             loss_disc = discriminator_loss(disc_real, disc_fake)
