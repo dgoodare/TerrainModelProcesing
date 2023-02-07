@@ -79,9 +79,8 @@ class Discriminator(nn.Module):
 class Generator(nn.Module):
     """A class to represent a generator within a GAN"""
 
-    def __init__(self, imgChannels, features):
+    def __init__(self, Z, imgChannels, features):
         super(Generator, self).__init__()
-
         ###
         # Encoding Stage:
         #   This stage encodes image features in latent space. Each layer consists of a block of convolution, with
@@ -90,8 +89,17 @@ class Generator(nn.Module):
         #   The MaxPool2D function is used to down-sample the image in order to reduce variance and computational
         #   complexity.
         ###
+        self.layers = nn.Sequential(
+            self._block(Z, features * 16, 4, 1, 0),
+            self._block(features * 16, features * 8, 4, 2, 1),
+            self._block(features * 8, features * 4, 4, 2, 1),
+            self._block(features * 4, features * 2, 4, 2, 1),
+            nn.ConvTranspose2d(features * 2, imgChannels, kernel_size=4, stride=2, padding=1),
+            nn.Tanh(),
+        )
+
         self.encodeLayer = nn.Sequential(
-            nn.Conv2d(in_channels=imgChannels, out_channels=features, kernel_size=(5, 5), dilation=2),
+            nn.Conv2d(in_channels=imgChannels, out_channels=features, kernel_size=5, dilation=2),
             nn.LeakyReLU(negative_slope=0.2),
             nn.BatchNorm2d(num_features=features, momentum=0.8)
         )
@@ -120,8 +128,25 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
-    def forward(self, x):
+    def _block(self, in_channels, out_channels, kernel_size, stride, padding):
+        return nn.Sequential(
+            nn.Upsample(size=(2, 2), mode='bilinear'),
+            nn.ConvTranspose2d(
+                in_channels,
+                out_channels,
+                kernel_size,
+                stride,
+                padding,
+                bias=False
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
+
+    def forward(self, x, maskedImg, mask):
         # encode
+        print(f"Shape: {x.shape}")
+        """
         output = self.encodeLayer(x)
         pool1 = nn.MaxPool2d(2, 2)(output)
 
@@ -150,13 +175,14 @@ class Generator(nn.Module):
 
         output = self.decodeLayer(output)
         decodedOutput = self.outputLayer(output)
-
+        
         # TODO: this is a critical stage for reverse-mask in-painting
         reversedMaskImg = torch.multiply(decodedOutput, self.mask)
         outputImg = torch.add(self.maskedImg, reversedMaskImg)
         concatOutput = torch.concat(outputImg, self.mask)
+        """
 
-        return output
+        return self.layers(x)
 
 
-test()
+# test()
