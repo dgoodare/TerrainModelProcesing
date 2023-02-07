@@ -13,6 +13,8 @@ import time
         - the shape of the mask, for each masked image
 """
 
+img_size = 512  # the size of images in the training dataset
+
 
 def sliceImage(filename, dir_in, dir_out, d):
     """Slices an input image into squares of size d"""
@@ -35,7 +37,7 @@ def CreateSquareMask(image, holeSize):
         Returns the resulting image and the corresponding mask as a tuple
     """
     # create a matrix with the same size as the input image and fill it with 1s
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
     # define the mask boundaries
     x2 = int(image.shape[0] / 2 + holeSize / 2)
     y1 = int(image.shape[1] / 2 - holeSize / 2)
@@ -53,14 +55,14 @@ def CreateStripMask(image, holeWidth):
         Returns the resulting image and the corresponding mask as a tuple
         """
     # create a matrix with the same size as the input image and fill it with 1s
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
     # define the mask boundaries
     y1 = int(image.shape[1]/2 - holeWidth/2)
     y2 = int(image.shape[1]/2 + holeWidth/2)
     x1 = int(0)
     x2 = int(image.shape[0])
     # fill the mask area with 0s
-    mask[x1:x2, y1:y2] = np.zeros([image.shape[0], holeWidth, 3], dtype=int)
+    mask[x1:x2, y1:y2] = np.zeros([image.shape[0], holeWidth, image.shape[2]], dtype=int)
     imageArray = np.multiply(image, mask)
     image = Image.fromarray(np.uint8(imageArray))
     return image, mask
@@ -69,7 +71,7 @@ def CreateStripMask(image, holeWidth):
 def CreateCircleMask(image, radius):
     """Adds a circular mask to an image"""
     # create numpy array to store the mask
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
 
     # define the centre of the circle to be the centre of the image
     c_x, c_y = int(image.shape[0]/2), int(image.shape[1]/2)
@@ -84,7 +86,7 @@ def CreateCircleMask(image, radius):
 def CreateEllipseMask(image, r_radius, c_radius):
     """Adds an elliptical mask to an image"""
     # create numpy array
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
     # set the centre of the ellipse to be the centre of the image
     c_x, c_y = int(image.shape[0]/2), int(image.shape[1]/2)
     r, c = ellipse(c_x, c_y, r_radius, c_radius)
@@ -98,7 +100,7 @@ def CreateEllipseMask(image, r_radius, c_radius):
 def CreatePolygonMask(image):
     """Adds a polygon mask to an image"""
     # create numpy array
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
     # define coordinates for the vertices of the polygon
     a = [int(image.shape[1]/2), int(image.shape[0]/2)]  # centre of the image
     b = [int(image.shape[0]/2), 0]  # centre at the top edge
@@ -120,7 +122,7 @@ def CreatePolygonMask(image):
 def CreateTopLeftEdgeMask(image):
     """Adds a polygon mask to an image"""
     # create numpy array
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
     # define coordinates for the vertices of the polygon
     a = [0, 0]  # top left corner of the image
     b = [int(2*image.shape[0]/10), 0]  # top edge
@@ -142,7 +144,7 @@ def CreateTopLeftEdgeMask(image):
 def CreateTopRightEdgeMask(image):
     """Adds a polygon mask to an image"""
     # create numpy array
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
     # define coordinates for the vertices of the polygon
     a = [image.shape[1]-1, 0]  # top left corner of the image
     b = [int(8*image.shape[1]/10), 0]  # top edge
@@ -164,7 +166,7 @@ def CreateTopRightEdgeMask(image):
 def CreateTopLeftStripMask(image):
     """Adds a polygon mask to an image"""
     # create numpy array
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
 
     # define coordinates for the vertices of the polygon
     a = [0, int(image.shape[0] * (2.5/10))]
@@ -190,7 +192,7 @@ def CreateTopLeftStripMask(image):
 def CreateBottomRightStripMask(image):
     """Adds a polygon mask to an image"""
     # create numpy array
-    mask = np.ones([image.shape[0], image.shape[1], 3], dtype=int)
+    mask = np.ones([image.shape[0], image.shape[1], image.shape[2]], dtype=int)
 
     # define coordinates for the vertices of the polygon
     a = [image.shape[1]-1, int(image.shape[0] * (2/10))]
@@ -251,6 +253,7 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             break
 
         # convert to numpy array
+        # noinspection PyTypeChecker
         imgArray = np.array(originalImg)
 
         row = [img]
@@ -439,12 +442,14 @@ def createLookUp():
     numSamples = len(f.readlines()) * numShapes
     print(f"Number of samples: {numSamples}")
 
+    return numSamples
+
 
 def main():
     startTime = time.time()
     inputDir = 'inputImages'
     outputDir = 'slicedImages'
-    tileSize = 512
+    tileSize = img_size
 
     # slice original images into smaller squares
     for img in os.listdir(inputDir):
@@ -452,7 +457,10 @@ def main():
     print('Images sliced...')
 
     # apply masks and create lookup table
-    createLookUp()
+    num_samples = createLookUp()
+
+    # convert to tensor files
+
     print(f"Dataset created in {time.time()-startTime} seconds")
 
 
@@ -466,4 +474,4 @@ def testMask():
     saveMaskToFile('outputMasks/', "testMask.npy", mask)
 
 
-main()
+# main()
