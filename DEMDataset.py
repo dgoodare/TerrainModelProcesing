@@ -52,41 +52,41 @@ class DEMDataset(Dataset):
         c_s_img = Image.open(maskedImagesDir + c_s_ImgPath)
         c_s_mask = np.load(maskDir + c_s_MaskPath)
 
-        # apply transformations if they have been specified
-        if self.transform:
-            tl_e_img = self.transform(tl_e_img)
-            tl_e_mask = self.transform(tl_e_mask)
-            tr_e_img = self.transform(tr_e_img)
-            tr_e_mask = self.transform(tr_e_mask)
-            tl_s_img = self.transform(tl_s_img)
-            tl_s_mask = self.transform(tl_s_mask)
-            br_s_img = self.transform(br_s_img)
-            br_s_mask = self.transform(br_s_mask)
-            c_s_img = self.transform(c_s_img)
-            c_s_mask = self.transform(c_s_mask)
+        gt_tens = self.transform(groundTruth)
+        tl_e_tens = self.transform(tl_e_img)
+        tl_e_mask = self.transform(tl_e_mask)
+        tr_e_tens = self.transform(tr_e_img)
+        tr_e_mask = self.transform(tr_e_mask)
+        tl_s_tens = self.transform(tl_s_img)
+        tl_s_mask = self.transform(tl_s_mask)
+        br_s_tens = self.transform(br_s_img)
+        br_s_mask = self.transform(br_s_mask)
+        c_s_tens = self.transform(c_s_img)
+        c_s_mask = self.transform(c_s_mask)
 
-        return groundTruth, tl_e_img, tl_e_mask, tr_e_img, tr_e_mask, tl_s_img, tl_s_mask, br_s_img, br_s_mask, c_s_img, c_s_mask
+        return gt_tens, tl_e_tens, tl_e_mask, tr_e_tens, tr_e_mask, tl_s_tens, tl_s_mask, br_s_tens, br_s_mask, c_s_tens, c_s_mask
 
 
-"""Create an example dataset and display a random sample from it"""
+def display_random_sample():
+    """Create an example dataset and display a random sample from it"""
 
-dataset = DEMDataset('lookUpTable.csv', 'LookUp',)
+    dataset = DEMDataset('lookUpTable.csv', 'LookUp', )
 
-sampleIdx = torch.randint(len(dataset), size=(1,)).item()
-originalImg = dataset[sampleIdx][0]
-tl_e = dataset[sampleIdx][1]
-tr_e = dataset[sampleIdx][3]
-tl_s = dataset[sampleIdx][5]
-br_s = dataset[sampleIdx][7]
-c_s = dataset[sampleIdx][9]
+    sampleIdx = torch.randint(len(dataset), size=(1,)).item()
+    originalImg = dataset[sampleIdx][0]
+    tl_e = dataset[sampleIdx][1]
+    tr_e = dataset[sampleIdx][3]
+    tl_s = dataset[sampleIdx][5]
+    br_s = dataset[sampleIdx][7]
+    c_s = dataset[sampleIdx][9]
 
-f, ax = plt.subplots(2, 3)
-ax[0, 0].set_title(str(sampleIdx) + ": Ground truth")
-ax[0, 0].imshow(originalImg)
-ax[0, 1].imshow(tl_e)
-ax[0, 2].imshow(tr_e)
-ax[1, 0].imshow(tl_s)
-ax[1, 1].imshow(br_s)
-ax[1, 2].imshow(c_s)
+    f, ax = plt.subplots(2, 3)
+    ax[0, 0].set_title(str(sampleIdx) + ": Ground truth")
+    ax[0, 0].imshow(originalImg)
+    ax[0, 1].imshow(tl_e)
+    ax[0, 2].imshow(tr_e)
+    ax[1, 0].imshow(tl_s)
+    ax[1, 1].imshow(br_s)
+    ax[1, 2].imshow(c_s)
 
-plt.show()
+    plt.show()
