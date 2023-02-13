@@ -13,7 +13,7 @@ import time
         - the shape of the mask, for each masked image
 """
 
-img_size = 512  # the size of images in the training dataset
+img_size = 64  # the size of images in the training dataset
 
 
 def sliceImage(filename, dir_in, dir_out, d):
