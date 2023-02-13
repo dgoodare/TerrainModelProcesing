@@ -42,15 +42,15 @@ class DEMDataset(Dataset):
         groundTruth = Image.open(groundTruthDir + imgPath)
         # get masked images and their corresponding masks and convert them to tensor objects
         tl_e_img = Image.open(maskedImagesDir + tl_e_ImgPath)
-        tl_e_mask = np.load(maskDir + tl_e_MaskPath)
+        tl_e_mask = np.load(maskDir + tl_e_MaskPath, allow_pickle=True)
         tr_e_img = Image.open(maskedImagesDir + tr_e_ImgPath)
-        tr_e_mask = np.load(maskDir + tr_e_MaskPath)
+        tr_e_mask = np.load(maskDir + tr_e_MaskPath, allow_pickle=True)
         tl_s_img = Image.open(maskedImagesDir + tl_s_ImgPath)
-        tl_s_mask = np.load(maskDir + tl_s_MaskPath)
+        tl_s_mask = np.load(maskDir + tl_s_MaskPath, allow_pickle=True)
         br_s_img = Image.open(maskedImagesDir + br_s_ImgPath)
-        br_s_mask = np.load(maskDir + br_s_MaskPath)
+        br_s_mask = np.load(maskDir + br_s_MaskPath, allow_pickle=True)
         c_s_img = Image.open(maskedImagesDir + c_s_ImgPath)
-        c_s_mask = np.load(maskDir + c_s_MaskPath)
+        c_s_mask = np.load(maskDir + c_s_MaskPath, allow_pickle=True)
 
         gt_tens = self.transform(groundTruth)
         tl_e_tens = self.transform(tl_e_img)
@@ -70,7 +70,7 @@ class DEMDataset(Dataset):
 def display_random_sample():
     """Create an example dataset and display a random sample from it"""
 
-    dataset = DEMDataset('lookUpTable.csv', 'LookUp', )
+    dataset = DEMDataset('lookUpTable.csv', 'LookUp', transform=transforms.ToTensor())
 
     sampleIdx = torch.randint(len(dataset), size=(1,)).item()
     originalImg = dataset[sampleIdx][0]
@@ -79,6 +79,8 @@ def display_random_sample():
     tl_s = dataset[sampleIdx][5]
     br_s = dataset[sampleIdx][7]
     c_s = dataset[sampleIdx][9]
+
+    # print(f"original shape: {originalImg.shape}")
 
     f, ax = plt.subplots(2, 3)
     ax[0, 0].set_title(str(sampleIdx) + ": Ground truth")
