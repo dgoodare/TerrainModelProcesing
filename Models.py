@@ -2,6 +2,81 @@ import torch
 import torch.nn as nn
 
 
+class Discriminator(nn.Module):
+    """A class to represent a discriminator within a GAN"""
+
+    def __init__(self, imgChannels,  features):
+        super(Discriminator, self).__init__()
+
+        self.layers = nn.Sequential(
+            nn.Conv2d(imgChannels, features, kernel_size=4, stride=2, padding=1),
+            nn.LeakyReLU(0.2),
+            self.block(features, features * 2, 4, 2, 1),
+            self.block(features * 2, features * 4, 4, 2, 1),
+            self.block(features * 4, features * 8, 4, 2, 1),
+            nn.Conv2d(features * 8, 1, kernel_size=4, stride=2, padding=0)
+        )
+
+    def block(self, in_channels, out_channels, kernel_size, stride, padding):
+        return nn.Sequential(
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size,
+                stride,
+                padding,
+                bias=False
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.LeakyReLU(0.2)
+        )
+
+    def forward(self, x):
+        return self.layers(x)
+
+
+class Generator(nn.Module):
+    """A class to represent a generator within a GAN"""
+
+    def __init__(self, Z, imgChannels, features):
+        super(Generator, self).__init__()
+
+        self.layers = nn.Sequential(
+            self.block(Z, features * 16, 4, 1, 0),
+            self.block(features * 16, features * 8, 4, stride=1, padding=1),
+            self.block(features * 8, features * 4, 4, stride=1, padding=1),
+            self.block(features * 4, features * 2, 4, stride=1, padding=1),
+            nn.Upsample(size=(64, 64), mode='nearest'),
+            nn.Conv2d(features * 2, imgChannels, 5, 1, padding='same'),
+            nn.Tanh(),
+        )
+
+    def block(self, in_channels, out_channels, kernel_size, stride, padding):
+        return nn.Sequential(
+            nn.Upsample(size=(64, 64), mode='nearest'),
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size,
+                stride,
+                padding,
+                bias=False
+            ),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
+
+    def forward(self, x): #, maskedImg, mask):
+        """        
+        # TODO: this is a critical stage for reverse-mask in-painting
+        reversedMaskImg = torch.multiply(decodedOutput, self.mask)
+        outputImg = torch.add(self.maskedImg, reversedMaskImg)
+        concatOutput = torch.concat(outputImg, self.mask)
+        """
+
+        return self.layers(x)
+
+
 def initialise_weights(model):
     """
     Initialises the weights for a nn model
@@ -14,175 +89,19 @@ def initialise_weights(model):
 def test():
     N, in_channels, H, W = 8, 2, 64, 64
     z_dim = 100
+    z = torch.randn((N, z_dim, 1, 1))
     x = torch.randn((N, in_channels, H, W))
-    disc = Discriminator(in_channels, 8)
-    initialise_weights(disc)
-    assert disc(x).shape == (N, 1, 1, 1)
-    print("Discriminator created...")
 
     gen = Generator(z_dim, in_channels, 8)
     initialise_weights(gen)
-    z = torch.randn((N, z_dim, 1, 1))
+
     assert gen(z).shape == (N, in_channels, H, W)
     print("Generator created...")
 
-
-class Discriminator(nn.Module):
-    """A class to represent a discriminator within a GAN"""
-
-    def __init__(self, imgChannels,  features):
-        super(Discriminator, self).__init__()
-        self.features = features
-
-        # Layers of the discriminator network
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(in_channels=imgChannels, out_channels=imgChannels, kernel_size=3, stride=2, padding=0),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.25),
-        )
-
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(features * 2, out_channels=imgChannels, kernel_size=3, stride=2, padding=0),
-            nn.ZeroPad2d((0, 1, 0, 1)),
-            nn.BatchNorm2d(num_features=features, momentum=0.8),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.25),
-        )
-
-        # layer 3
-        self.layer3 = nn.Sequential(
-            nn.Conv2d(features * 4, out_channels=imgChannels, kernel_size=3, stride=2, padding=0),
-            nn.BatchNorm2d(num_features=features, momentum=0.8),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.25),
-        )
-
-        # layer 4
-        self.layer4 = nn.Sequential(
-            nn.Conv2d(features * 8, out_channels=imgChannels, kernel_size=3, stride=2, padding=0),
-            nn.BatchNorm2d(num_features=features, momentum=0.8),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.25),
-        )
-
-    def forward(self, x):
-        output = self.layer1(x)
-        output = self.layer2(output)
-        output = self.layer3(output)
-        output = self.layer4(output)
-        output = nn.Flatten()(output)
-        output = nn.Linear(self.features, 1)(output)
-
-        return output
-
-
-class Generator(nn.Module):
-    """A class to represent a generator within a GAN"""
-
-    def __init__(self, Z, imgChannels, features):
-        super(Generator, self).__init__()
-        ###
-        # Encoding Stage:
-        #   This stage encodes image features in latent space. Each layer consists of a block of convolution, with
-        #   a 5x5 kernel size, an output size of 64, and a dilation rate of 2. The purpose of dilation is to capture
-        #   finer details as well as textural information.
-        #   The MaxPool2D function is used to down-sample the image in order to reduce variance and computational
-        #   complexity.
-        ###
-        self.layers = nn.Sequential(
-            self._block(Z, features * 16, 4, 1, 0),
-            self._block(features * 16, features * 8, 4, 2, 1),
-            self._block(features * 8, features * 4, 4, 2, 1),
-            self._block(features * 4, features * 2, 4, 2, 1),
-            nn.ConvTranspose2d(features * 2, imgChannels, kernel_size=4, stride=2, padding=1),
-            nn.Tanh(),
-        )
-
-        self.encodeLayer = nn.Sequential(
-            nn.Conv2d(in_channels=imgChannels, out_channels=features, kernel_size=5, dilation=2),
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.BatchNorm2d(num_features=features, momentum=0.8)
-        )
-
-        # the final encoding layer includes dropout instead of batch normalisation to prevent over-fitting
-        self.encodeLayerDropout = nn.Sequential(
-            nn.Conv2d(in_channels=imgChannels, out_channels=features, kernel_size=(5, 5), dilation=2),
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.Dropout()
-        )
-
-        ###
-        # Decoding stage:
-        #
-        ###
-
-        self.decodeLayer = nn.Sequential(
-            nn.Upsample(size=(2, 2), mode='bilinear'),
-            nn.ConvTranspose2d(in_channels=imgChannels, out_channels=features, kernel_size=(5, 5), ),
-            # Lambda(lambda x: tf.pad(x,[[0,0],[0,0],[0,0],[0,0]],'REFLECT'))
-            nn.ReLU(),
-            nn.BatchNorm2d(num_features=features, momentum=0.8)
-        )
-        self.outputLayer = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=imgChannels, out_channels=features, kernel_size=(3, 3)),
-            nn.Tanh()
-        )
-
-    def _block(self, in_channels, out_channels, kernel_size, stride, padding):
-        return nn.Sequential(
-            nn.Upsample(size=(2, 2), mode='bilinear'),
-            nn.ConvTranspose2d(
-                in_channels,
-                out_channels,
-                kernel_size,
-                stride,
-                padding,
-                bias=False
-            ),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
-        )
-
-    def forward(self, x, maskedImg, mask):
-        # encode
-        print(f"Shape: {x.shape}")
-        """
-        output = self.encodeLayer(x)
-        pool1 = nn.MaxPool2d(2, 2)(output)
-
-        output = self.encodeLayer(pool1)
-        pool2 = nn.MaxPool2d(2, 2)(output)
-        self.features *= 2
-
-        output = self.encodeLayer(pool2)
-        pool3 = nn.MaxPool2d(2, 2)(output)
-        self.features *= 2
-
-        output = self.encodeLayer(pool3)
-        pool4 = nn.MaxPool2d(2, 2)(output)
-        self.features *= 2
-        output = self.encodeLayerDropout(pool4)
-
-        # decode
-        output = self.decodeLayer(output)
-        self.features /= 2
-
-        output = self.decodeLayer(output)
-        self.features /= 2
-
-        output = self.decodeLayer(output)
-        self.features /= 2
-
-        output = self.decodeLayer(output)
-        decodedOutput = self.outputLayer(output)
-        
-        # TODO: this is a critical stage for reverse-mask in-painting
-        reversedMaskImg = torch.multiply(decodedOutput, self.mask)
-        outputImg = torch.add(self.maskedImg, reversedMaskImg)
-        concatOutput = torch.concat(outputImg, self.mask)
-        """
-
-        return self.layers(x)
+    disc = Discriminator(in_channels, N)
+    initialise_weights(disc)
+    assert disc(x).shape == (N, 1, 1, 1)
+    print("Discriminator created...")
 
 
 # test()
