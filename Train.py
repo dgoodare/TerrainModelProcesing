@@ -67,9 +67,9 @@ def generator_loss(x, y, disc_loss):
 # Define Hyper-parameters
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Learning_rate = 5e-5
-Batch_size = 64
+Batch_size = 8
 Img_Size = DatasetManager.img_size
-Img_channels = 2
+Img_channels = 4
 Z_dim = 100  # check what this actually is
 Num_epochs = 1
 Features_disc = 64
@@ -94,13 +94,13 @@ Dataset_size = dataset.__len__()
 print("Dataset loaded...")
 print(f"Dataset size: {Dataset_size}")
 # split into training and testing sets with an 80/20 ratio
-trainingSet, testingSet = torch.utils.data.random_split(dataset, [int(Dataset_size*8/10), int(Dataset_size*2/10)])
+# trainingSet, testingSet = torch.utils.data.random_split(dataset, [int(Dataset_size*8/10), int(Dataset_size*2/10)])
 print("Dataset split...")
 # create dataloaders for each set
 # TODO: look into multi-processing
-trainingLoader = DataLoader(dataset=trainingSet, batch_size=Batch_size, shuffle=True)
+trainingLoader = DataLoader(dataset=dataset, batch_size=Batch_size, shuffle=True)
 print("training loader created...")
-testingLoader = DataLoader(dataset=testingSet, batch_size=Batch_size, shuffle=True)
+# testingLoader = DataLoader(dataset=testingSet, batch_size=Batch_size, shuffle=True)
 print("testing loader created...")
 
 
@@ -123,7 +123,7 @@ opt_disc = optim.Adam(params=disc.parameters(),
 print("optimisers defined...")
 
 # Define random noise to being training with
-fixed_noise = torch.randn(32, Img_channels, 1, 1).to(device)
+fixed_noise = torch.randn(32, Z_dim, 1, 1).to(device)
 
 # Data Visualisation stuff
 writer_real = SummaryWriter(f"logs/real")
@@ -133,7 +133,6 @@ print("Summary writers created...")
 step = 0
 gen.train()
 disc.train()
-print(gen)
 print("ready to train...")
 
 
@@ -154,9 +153,10 @@ for epoch in range(Num_epochs):
         for _ in range(Disc_iters):
             noise = torch.randn((Batch_size, Z_dim, 1, 1)).to(device)
             # TODO: make sure masks are passed properly as parameters
-            fake = gen(x=noise, maskedImg=maskedImg, mask=mask)
-            disc_real = disc(real).reshape(-1)
-            disc_fake = disc(fake).reshape(-1)
+            fake = gen(x=noise)  # , maskedImg=maskedImg, mask=mask)
+            print(f"Fake shape: {fake.shape}")
+            disc_real = disc(real)
+            disc_fake = disc(fake)
             loss_disc = discriminator_loss(disc_real, disc_fake)
             disc.zero_grad()
             loss_disc.backward(retain_graph=True)
