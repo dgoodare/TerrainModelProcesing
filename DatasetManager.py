@@ -243,8 +243,8 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
     outputList = []
 
     # open input directory and iterate through the images
-    for img in os.listdir(inputDir):
-        originalImg = Image.open(inputDir + '/' + img)
+    for image in os.listdir(inputDir):
+        originalImg = Image.open(inputDir + '/' + image)
 
         # check if the file opened properly
         if originalImg is None:
@@ -255,8 +255,7 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
         # convert to numpy array
         # noinspection PyTypeChecker
         imgArray = np.array(originalImg)
-
-        row = [img]
+        rows = []
 
         # Top left edge
         if shapeList[0]:
@@ -265,8 +264,10 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_tl_edge_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # Top right edge
         if shapeList[1]:
@@ -275,8 +276,11 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_tr_edge_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # Top left strip
         if shapeList[2]:
@@ -285,8 +289,10 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_tl_strip_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # Bottom right strip
         if shapeList[3]:
@@ -295,8 +301,10 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_br_strip_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # Square
         if shapeList[4]:
@@ -305,8 +313,10 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_sqr_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # Centre strip
         if shapeList[5]:
@@ -315,8 +325,10 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_c_strip_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # Circle
         if shapeList[6]:
@@ -325,8 +337,10 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_circle_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # Ellipse
         if shapeList[7]:
@@ -335,8 +349,10 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_ellipse_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # Polygon
         if shapeList[8]:
@@ -345,10 +361,10 @@ def applyMasks(shapeList, inputDir, imageOut, maskOut):
             maskFile = "_poly_mask.npy"
             saveImageToFile(imageOutDir, str(counter) + imgFile, img)
             saveMaskToFile(maskOutDir, str(counter) + maskFile, mask)
-            row.append(str(counter) + imgFile)
-            row.append(str(counter) + maskFile)
-
-        outputList.append(row)
+            # row.append(str(counter) + imgFile)
+            # row.append(str(counter) + maskFile)
+            row = image, str(counter) + maskFile
+            outputList.append(row)
 
         # increment counter
         counter += 1
@@ -425,7 +441,8 @@ def createLookUp():
     csvFile = 'LookUp/lookUpTable.csv'
 
     # column names for csv file
-    csvFields = createCSVHeader(shapes)
+    # csvFields = createCSVHeader(shapes)
+    csvFields = ['Original', 'Mask']
 
     try:
         # write to csv file
@@ -439,7 +456,7 @@ def createLookUp():
         print("Failed to create lookUpTable.csv")
 
     f = open("LookUp/lookUpTable.csv")
-    numSamples = len(f.readlines()) * numShapes
+    numSamples = len(f.readlines())
     print(f"Number of samples: {numSamples}")
 
     return numSamples
