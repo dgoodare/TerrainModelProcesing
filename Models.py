@@ -66,14 +66,7 @@ class Generator(nn.Module):
             nn.ReLU(),
         )
 
-    def forward(self, x): #, maskedImg, mask):
-        """        
-        # TODO: this is a critical stage for reverse-mask in-painting
-        reversedMaskImg = torch.multiply(decodedOutput, self.mask)
-        outputImg = torch.add(self.maskedImg, reversedMaskImg)
-        concatOutput = torch.concat(outputImg, self.mask)
-        """
-
+    def forward(self, x):
         return self.layers(x)
 
 
