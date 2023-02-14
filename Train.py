@@ -25,17 +25,6 @@ def reverse_mask(x):
     return 1-x
 
 
-def select_mask_type():
-    types = {
-        1: 1,  # tl_edge
-        2: 3,  # tr_edge
-        3: 5,  # tl_strip
-        4: 7,  # br_strip
-        5: 9   # c_strip
-    }
-    i = random.randint(1, 5)
-    return types[i]
-
 
 def discriminator_loss(x, y):
     """
@@ -70,7 +59,7 @@ Learning_rate = 5e-5
 Batch_size = 8
 Img_Size = DatasetManager.img_size
 Img_channels = 3
-Z_dim = 100  # check what this actually is
+Z_dim = 100
 Num_epochs = 1
 Features_disc = 64
 Features_gen = 64
