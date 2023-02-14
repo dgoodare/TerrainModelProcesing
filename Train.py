@@ -69,7 +69,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Learning_rate = 5e-5
 Batch_size = 8
 Img_Size = DatasetManager.img_size
-Img_channels = 4
+Img_channels = 3
 Z_dim = 100  # check what this actually is
 Num_epochs = 1
 Features_disc = 64
@@ -138,23 +138,23 @@ print("ready to train...")
 
 for epoch in range(Num_epochs):
     for batch_idx, sample in enumerate(trainingLoader):
-        print(f"Batch index: {batch_idx}")
-        # choose which mask type to use for this epoch
-        maskID = select_mask_type()
-        # retrieve ground truth, masked image, and corresponding mask
+        print(
+            f"========================================= \n"
+            f"Batch index: {batch_idx}"
+        )
+        # retrieve ground truth and corresponding mask
         real = sample[0].to(device)
-        maskedImg = sample[maskID].to(device)
-        mask = sample[maskID+1].to(device)
-        print(f"Real size: {real.shape}")
-        print(f"Masked Img size: {maskedImg.shape}")
-        print(f"Mask size: {mask.shape}")
+        mask = sample[1].to(device)
+        # print(f"Real size: {real.shape}")
+        # print(f"Masked Img size: {maskedImg.shape}")
+        # print(f"Mask size: {mask.shape}")
 
         # train discriminator
         for _ in range(Disc_iters):
             noise = torch.randn((Batch_size, Z_dim, 1, 1)).to(device)
             # TODO: make sure masks are passed properly as parameters
             fake = gen(x=noise)  # , maskedImg=maskedImg, mask=mask)
-            print(f"Fake shape: {fake.shape}")
+            # print(f"Fake shape: {fake.shape}")
             disc_real = disc(real)
             disc_fake = disc(fake)
             loss_disc = discriminator_loss(disc_real, disc_fake)
@@ -173,20 +173,18 @@ for epoch in range(Num_epochs):
         opt_gen.step()
 
         # display results at specified intervals
-        if batch_idx % 100 == 0:
-            print(
-                f"========================================="
-                f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}]"
-                f"|| Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
-            )
+        # if batch_idx % 100 == 0:
+        print(
 
-            with torch.no_grad():
-                fake = gen(fixed_noise)
-                # pick up to 32 examples
-                img_grid_real = torchvision.utils.make_grid(real[:32], normalize=True)
-                img_grid_fake = torchvision.utils.make_grid(fake[:32], normalize=True)
+             f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}] \n"
+             f"|| Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
+         )
 
-                writer_real.add_image("Real", img_grid_real, global_step=step)
-                writer_fake.add_image("Fake", img_grid_fake, global_step=step)
-
-            step += 1
+        with torch.no_grad():
+            fake = gen(fixed_noise)
+            # pick up to 32 examples
+            img_grid_real = torchvision.utils.make_grid(real[:32], normalize=True)
+            img_grid_fake = torchvision.utils.make_grid(fake[:32], normalize=True)
+            writer_real.add_image("Real", img_grid_real, global_step=step)
+            writer_fake.add_image("Fake", img_grid_fake, global_step=step)
+        step += 1
