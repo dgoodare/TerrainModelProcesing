@@ -145,16 +145,21 @@ for epoch in range(Num_epochs):
         # retrieve ground truth and corresponding mask
         real = sample[0].to(device)
         mask = sample[1].to(device)
-        # print(f"Real size: {real.shape}")
-        # print(f"Masked Img size: {maskedImg.shape}")
-        # print(f"Mask size: {mask.shape}")
 
         # train discriminator
         for _ in range(Disc_iters):
             noise = torch.randn((Batch_size, Z_dim, 1, 1)).to(device)
-            # TODO: make sure masks are passed properly as parameters
-            fake = gen(x=noise)  # , maskedImg=maskedImg, mask=mask)
-            # print(f"Fake shape: {fake.shape}")
+            generatedDEM = gen(x=noise)
+
+            # apply the reverse mask operation to the generated DEM to create the fake patch
+            fakePatch = torch.multiply(generatedDEM, reverse_mask(mask))
+            # apply the mask to the real DEM to create the data void
+            maskedDEM = torch.multiply(real, mask)
+
+            # combine the fake patch with the masked DEM
+            fake = torch.add(maskedDEM, fakePatch)
+
+            # send real and fake DEMs to the discriminator
             disc_real = disc(real)
             disc_fake = disc(fake)
             loss_disc = discriminator_loss(disc_real, disc_fake)
