@@ -1,9 +1,14 @@
 import torch
 import torch.nn as nn
+from CreateDataset import img_size
 
 
 class Discriminator(nn.Module):
-    """A class to represent a discriminator within a GAN"""
+    """
+    A class to represent a discriminator within a GAN
+    -   The design of the network follows the architecture described in 'Void Filling of Digital Elevation Models with
+        a Terrain Texture Learning Model Based on Generative Adversarial Networks' (Qui et al. 2019)
+    """
 
     def __init__(self, imgChannels,  features):
         super(Discriminator, self).__init__()
@@ -36,7 +41,11 @@ class Discriminator(nn.Module):
 
 
 class Generator(nn.Module):
-    """A class to represent a generator within a GAN"""
+    """
+    A class to represent a generator within a GAN
+    -   The design of the network follows the architecture described in 'Void Filling of Digital Elevation Models with
+        a Terrain Texture Learning Model Based on Generative Adversarial Networks' (Qui et al. 2019)
+    """
 
     def __init__(self, Z, imgChannels, features):
         super(Generator, self).__init__()
@@ -46,14 +55,14 @@ class Generator(nn.Module):
             self.block(features * 16, features * 8, 4, stride=1, padding=1),
             self.block(features * 8, features * 4, 4, stride=1, padding=1),
             self.block(features * 4, features * 2, 4, stride=1, padding=1),
-            nn.Upsample(size=(64, 64), mode='nearest'),
+            nn.Upsample(size=(img_size, img_size), mode='nearest'),
             nn.Conv2d(features * 2, imgChannels, 5, 1, padding='same'),
             nn.Tanh(),
         )
 
     def block(self, in_channels, out_channels, kernel_size, stride, padding):
         return nn.Sequential(
-            nn.Upsample(size=(64, 64), mode='nearest'),
+            nn.Upsample(size=(img_size, img_size), mode='nearest'),
             nn.Conv2d(
                 in_channels,
                 out_channels,
@@ -80,7 +89,7 @@ def initialise_weights(model):
 
 
 def test():
-    N, in_channels, H, W = 8, 3, 64, 64
+    N, in_channels, H, W = 8, 1, 64, 64
     z_dim = 100
     z = torch.randn((N, z_dim, 1, 1))
     x = torch.randn((N, in_channels, H, W))

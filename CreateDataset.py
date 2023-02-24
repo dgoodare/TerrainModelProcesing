@@ -328,15 +328,10 @@ def createLookUp():
     # csv filename
     csvFile = 'LookUp/lookUpTable.csv'
 
-    # column names for csv file
-    # csvFields = createCSVHeader(shapes)
-    csvFields = ['Original', 'Mask']
-
     try:
         # write to csv file
-        with open(csvFile, 'w') as csvFile:
+        with open(csvFile, 'w', newline='') as csvFile:
             csvWriter = csv.writer(csvFile, dialect='excel')
-            csvWriter.writerow(csvFields)
             csvWriter.writerows(csvRows)
 
         print('Lookup table created...')
@@ -344,12 +339,13 @@ def createLookUp():
         print("Failed to create lookUpTable.csv")
 
     f = open("LookUp/lookUpTable.csv")
-    numSamples = len(f.readlines())
+    numSamples = len(f.readlines()) - 1  # there is a blank row at the end of the file
     print(f"Number of samples: {numSamples}")
     return
 
 
 def main():
+    startTime = time.time()
     driver = gdal.GetDriverByName('PDS4')
     driver.Register()
 
@@ -366,9 +362,10 @@ def main():
 
     print(np_array.shape)
 
-    slice_DEM(np_array, 512, 'm1331540878le', 'output_slices')
+    slice_DEM(np_array, img_size, 'm1331540878le', 'outputSlices')
 
     createLookUp()
+    print(f"Dataset created in {time.time()-startTime} seconds")
 
 
-main()
+# main()

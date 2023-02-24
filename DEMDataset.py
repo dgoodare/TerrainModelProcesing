@@ -25,11 +25,11 @@ class DEMDataset(Dataset):
         imgPath = self.lookUp.iloc[index, 0]
         maskPath = self.lookUp.iloc[index, 1]
 
-        groundTruthDir = 'slicedImages/'
+        groundTruthDir = 'outputSlices/'
         maskDir = 'outputMasks/'
 
         # read the image and the mask
-        groundTruth = Image.open(groundTruthDir + imgPath)
+        groundTruth = np.load(groundTruthDir + imgPath)
         mask = np.load(maskDir + maskPath)
         # apply transformations
         gt_tens = self.transform(groundTruth)

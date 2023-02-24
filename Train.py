@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader  # module for iterating over a dataset
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
-import DatasetManager
+import CreateDataset
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
 
@@ -57,8 +57,8 @@ def generator_loss(x, y, disc_loss):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Learning_rate = 5e-5
 Batch_size = 8
-Img_Size = DatasetManager.img_size
-Img_channels = 3
+Img_Size = CreateDataset.img_size
+Img_channels = 1
 Z_dim = 100
 Num_epochs = 1
 Features_disc = 64
@@ -73,7 +73,6 @@ epsilon = 1e-08
 transforms = transforms.Compose(
     [
         transforms.ToTensor(),
-        # transforms.Normalize() - TODO: check with Iain if there are upper and lower limits for DEMs
     ]
 )
 
@@ -167,12 +166,12 @@ for epoch in range(Num_epochs):
         opt_gen.step()
 
         # display results at specified intervals
-        # if batch_idx % 100 == 0:
-        print(
+        if batch_idx % 1 == 0:
+            print(
 
-             f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}] \n"
-             f"|| Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
-         )
+                 f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}] \n"
+                 f"|| Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
+            )
 
         with torch.no_grad():
             fake = gen(fixed_noise)
