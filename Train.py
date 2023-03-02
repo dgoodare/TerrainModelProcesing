@@ -12,18 +12,9 @@ from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
 
 
-import numpy as np
-import matplotlib.pyplot as plt
-import time
-import os
-import copy
-import random
-
-
 def reverse_mask(x):
     """A function to reverse an image mask"""
     return 1-x
-
 
 
 def discriminator_loss(x, y):
@@ -55,12 +46,12 @@ def generator_loss(x, y, disc_loss):
 
 # Define Hyper-parameters
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-Learning_rate = 5e-5
-Batch_size = 8
+Learning_rate = 1e-4
+Batch_size = 16
 Img_Size = CreateDataset.img_size
 Img_channels = 1
 Z_dim = 100
-Num_epochs = 1
+Num_epochs = 50
 Features_disc = 64
 Features_gen = 64
 Disc_iters = 5
@@ -85,7 +76,7 @@ print(f"Dataset size: {Dataset_size}")
 # trainingSet, testingSet = torch.utils.data.random_split(dataset, [int(Dataset_size*8/10), int(Dataset_size*2/10)])
 print("Dataset split...")
 # create dataloaders for each set
-# TODO: look into multi-processing
+# TODO: look into multiprocessing
 trainingLoader = DataLoader(dataset=dataset, batch_size=Batch_size, shuffle=True)
 print("training loader created...")
 # testingLoader = DataLoader(dataset=testingSet, batch_size=Batch_size, shuffle=True)
@@ -116,6 +107,8 @@ fixed_noise = torch.randn(32, Z_dim, 1, 1).to(device)
 # Data Visualisation stuff
 writer_real = SummaryWriter(f"logs/real")
 writer_fake = SummaryWriter(f"logs/fake")
+writer_d_loss = SummaryWriter(f"logs/loss_d")
+writer_g_loss = SummaryWriter(f"logs/loss_g")
 print("Summary writers created...")
 
 step = 0
@@ -126,10 +119,6 @@ print("ready to train...")
 
 for epoch in range(Num_epochs):
     for batch_idx, sample in enumerate(trainingLoader):
-        print(
-            f"========================================= \n"
-            f"Batch index: {batch_idx}"
-        )
         # retrieve ground truth and corresponding mask
         real = sample[0].to(device)
         mask = sample[1].to(device)
@@ -141,6 +130,7 @@ for epoch in range(Num_epochs):
 
             # apply the reverse mask operation to the generated DEM to create the fake patch
             fakePatch = torch.multiply(generatedDEM, reverse_mask(mask))
+
             # apply the mask to the real DEM to create the data void
             maskedDEM = torch.multiply(real, mask)
 
@@ -165,19 +155,28 @@ for epoch in range(Num_epochs):
         loss_gen.backward()
         opt_gen.step()
 
-        # display results at specified intervals
-        if batch_idx % 1 == 0:
-            print(
+        # plot loss functions - not directly useful but can be used to illustrate a point about evaluating GANs
+        writer_d_loss.add_scalar('Discriminator Loss', loss_disc, global_step=step)
+        writer_g_loss.add_scalar('Generator Loss', loss_gen, global_step=step)
 
-                 f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}] \n"
-                 f"|| Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
+        # display results at specified intervals
+        if batch_idx % 10 == 0:
+            print(
+                f"---------------------------------------------- \n"
+                f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}] \n"
+                f"|| Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
             )
 
-        with torch.no_grad():
-            fake = gen(fixed_noise)
-            # pick up to 32 examples
-            img_grid_real = torchvision.utils.make_grid(real[:32], normalize=True)
-            img_grid_fake = torchvision.utils.make_grid(fake[:32], normalize=True)
-            writer_real.add_image("Real", img_grid_real, global_step=step)
-            writer_fake.add_image("Fake", img_grid_fake, global_step=step)
+            with torch.no_grad():
+                # pick up to 16 examples
+                img_grid_real = torchvision.utils.make_grid(real[:16])
+                img_grid_fake = torchvision.utils.make_grid(fake[:16])
+                writer_real.add_image("Real", img_grid_real, global_step=step)
+                writer_fake.add_image("Fake", img_grid_fake, global_step=step)
+
         step += 1
+
+    # save model at specified epochs
+    if epoch+1 % 10 == 0:
+        torch.save(gen, 'gen_epoch_{}.pth'.format(epoch))
+        print(f"Model {epoch} saved")

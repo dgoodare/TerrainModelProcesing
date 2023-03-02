@@ -35,6 +35,9 @@ def slice_DEM(arr, size, in_file, outDir):
             print(f"{filename} could not be saved, or the file only contains partial data")
         idx += 1
 
+        if idx > 100:
+            break
+
 
 def CreateSquareMask(holeSize):
     """ Adds a square mask to an image
@@ -339,7 +342,7 @@ def createLookUp():
         print("Failed to create lookUpTable.csv")
 
     f = open("LookUp/lookUpTable.csv")
-    numSamples = len(f.readlines()) - 1  # there is a blank row at the end of the file
+    numSamples = len(f.readlines())
     print(f"Number of samples: {numSamples}")
     return
 
@@ -368,4 +371,15 @@ def main():
     print(f"Dataset created in {time.time()-startTime} seconds")
 
 
+def saveDEM():
+    array = np.load('outputSlices/m1331540878le_1.npy')
+    driver = gdal.GetDriverByName('PDS4')
+    driver.Register()
+
+    outDEM = driver.Create("outputDEM.xml", array.shape[0], array.shape[1], 1, gdal.GDT_CFloat32)
+
+    if outDEM is None:
+        print("unable to save DEM")
+
+# saveDEM()
 # main()
