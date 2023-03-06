@@ -5,7 +5,6 @@ from torchvision import transforms
 import os
 import matplotlib.pyplot as plt
 import pandas as pd
-from PIL import Image
 import numpy as np
 
 
@@ -29,13 +28,10 @@ class DEMDataset(Dataset):
         maskDir = 'outputMasks/'
 
         # read the image and the mask
-        groundTruth = np.load(groundTruthDir + imgPath)
-        mask = np.load(maskDir + maskPath)
-        # apply transformations
-        gt_tens = self.transform(groundTruth)
-        mask_tens = self.transform(mask)
+        groundTruth = torch.load(groundTruthDir + imgPath)
+        mask = torch.load(maskDir + maskPath)
 
-        return gt_tens, mask_tens
+        return groundTruth, mask
 
 
 def display_random_sample():

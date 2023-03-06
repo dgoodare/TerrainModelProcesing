@@ -1,4 +1,4 @@
-from itertools import product
+import torch
 import numpy as np
 from skimage.draw import disk, ellipse, polygon
 import os
@@ -28,9 +28,12 @@ def slice_DEM(arr, size, in_file, outDir):
 
     idx = 1
     for x in grid:
-        filename = outDir + '/' + in_file + '_' + str(idx) + '.npy'
+        filename = outDir + '/' + in_file + '_' + str(idx) + '.pt'
         try:
-            np.save(filename, x)
+            t = torch.tensor(x)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
+
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
         idx += 1
@@ -207,65 +210,83 @@ def CreateBottomRightStripMask():
 def createMasks(shapeList, outDir):
     if shapeList[0]:
         mask = CreateTopLeftEdgeMask()
-        filename = outDir + '/' + "tl_edge.npy"
+        filename = outDir + '/' + "tl_edge.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
     if shapeList[1]:
         mask = CreateTopRightEdgeMask()
-        filename = outDir + '/' + "tr_edge.npy"
+        filename = outDir + '/' + "tr_edge.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
     if shapeList[2]:
         mask = CreateTopLeftStripMask()
-        filename = outDir + '/' + "tl_strip.npy"
+        filename = outDir + '/' + "tl_strip.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
     if shapeList[3]:
         mask = CreateBottomRightStripMask()
-        filename = outDir + '/' + "br_edge.npy"
+        filename = outDir + '/' + "br_edge.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
     if shapeList[4]:
         mask = CreateSquareMask(int(img_size/4))
-        filename = outDir + '/' + "sqr.npy"
+        filename = outDir + '/' + "sqr.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
     if shapeList[5]:
         mask = CreateStripMask(int(img_size/8))
-        filename = outDir + '/' + "c_strip.npy"
+        filename = outDir + '/' + "c_strip.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
     if shapeList[6]:
         mask = CreateCircleMask(int(img_size/4))
-        filename = outDir + '/' + "circle.npy"
+        filename = outDir + '/' + "circle.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
     if shapeList[7]:
         mask = CreateEllipseMask(int(img_size/3), int(img_size/6))
-        filename = outDir + '/' + "ellipse.npy"
+        filename = outDir + '/' + "ellipse.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
     if shapeList[8]:
         mask = CreatePolygonMask()
-        filename = outDir + '/' + "polygon.npy"
+        filename = outDir + '/' + "polygon.pt"
         try:
-            np.save(filename, mask)
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            torch.save(t, filename)
         except OSError:
             print(f"{filename} could not be saved, or the file only contains partial data")
 
@@ -275,31 +296,31 @@ def createRows(shapesList, inDir):
 
     for file in os.listdir(inDir):
         if shapesList[0]:
-            row = file, "tl_edge.npy"
+            row = file, "tl_edge.pt"
             outputList.append(row)
         if shapesList[1]:
-            row = file, "tr_edge.npy"
+            row = file, "tr_edge.pt"
             outputList.append(row)
         if shapesList[2]:
-            row = file, "tl_strip.npy"
+            row = file, "tl_strip.pt"
             outputList.append(row)
         if shapesList[3]:
-            row = file, "br_edge.npy"
+            row = file, "br_edge.pt"
             outputList.append(row)
         if shapesList[4]:
-            row = file, "sqr.npy"
+            row = file, "sqr.pt"
             outputList.append(row)
         if shapesList[5]:
-            row = file, "c_strip.npy"
+            row = file, "c_strip.pt"
             outputList.append(row)
         if shapesList[6]:
-            row = file, "circle.npy"
+            row = file, "circle.pt"
             outputList.append(row)
         if shapesList[7]:
-            row = file, "ellipse.npy"
+            row = file, "ellipse.pt"
             outputList.append(row)
         if shapesList[8]:
-            row = file, "polygon.npy"
+            row = file, "polygon.pt"
             outputList.append(row)
 
     return outputList
@@ -361,12 +382,12 @@ def main():
 
     print(f"Cols: {data.RasterXSize}, Rows: {data.RasterYSize}, bands: {data.RasterCount}")
 
-    np_array = np.array(data.GetRasterBand(1).ReadAsArray())
+    np_array = np.array(data.GetRasterBand(1).ReadAsArray(), dtype='f')
 
     print(np_array.shape)
+    print(np_array.dtype)
 
     slice_DEM(np_array, img_size, 'm1331540878le', 'outputSlices')
-
     createLookUp()
     print(f"Dataset created in {time.time()-startTime} seconds")
 
@@ -382,4 +403,7 @@ def saveDEM():
         print("unable to save DEM")
 
 # saveDEM()
+
+
 # main()
+

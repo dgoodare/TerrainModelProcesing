@@ -89,7 +89,7 @@ def initialise_weights(model):
 
 
 def test():
-    N, in_channels, H, W = 8, 1, 64, 64
+    N, in_channels, H, W = 16, 1, 64, 64
     z_dim = 100
     z = torch.randn((N, z_dim, 1, 1))
     x = torch.randn((N, in_channels, H, W))

@@ -27,21 +27,27 @@ def discriminator_loss(x, y):
     return -(torch.mean(x) - torch.mean(y))
 
 
-def generator_loss(x, y, disc_loss):
-    """
-    Loss function for generator network
-    :param x: real
-    :param y: fake
-    :param disc_loss: the inverse of the loss of the discriminator
-    :return:
-    """
-    # TODO: define a proper loss function
-    input_mask = x[:, :, :, 3:]
-    reversedMask = reverse_mask(input_mask)
+def generator_loss(r, f, m, d):
 
-    inputImg = x[:, :, :, 0:3]
-    outputImg = y[:, :, :, 0:3]
-    return disc_loss
+    # pixel-wise loss
+    i = torch.multiply(f, m)
+    t = torch.multiply(r, m)
+    loss = torch.nn.MSELoss()
+    pxlLoss = loss(i, t)
+
+    # context loss
+    """
+    w = torch.zeros([Img_Size, Img_Size])  # weight matrix
+    for i, j in w:
+        if m[i, j] == 0:
+            w[i, j] = 0
+        else: """
+
+    # perceptual loss
+    prcpLoss = torch.log(1-d)
+    print(f"pxl loss: {pxlLoss}")
+
+    return pxlLoss
 
 
 # Define Hyper-parameters
@@ -55,7 +61,7 @@ Num_epochs = 50
 Features_disc = 64
 Features_gen = 64
 Disc_iters = 5
-Weight_clip = 0.01  # check what this is too
+Weight_clip = 0.01  # TODO: check what this is too
 beta1 = 0.9
 beta2 = 0.999
 epsilon = 1e-08
@@ -136,10 +142,9 @@ for epoch in range(Num_epochs):
 
             # combine the fake patch with the masked DEM
             fake = torch.add(maskedDEM, fakePatch)
-
             # send real and fake DEMs to the discriminator
-            disc_real = disc(real)
-            disc_fake = disc(fake)
+            disc_real = disc(real).reshape(-1)
+            disc_fake = disc(fake).reshape(-1)
             loss_disc = discriminator_loss(disc_real, disc_fake)
             disc.zero_grad()
             loss_disc.backward(retain_graph=True)
@@ -150,7 +155,7 @@ for epoch in range(Num_epochs):
 
         # train generator
         output = disc(fake).reshape(-1)
-        loss_gen = generator_loss(real, fake, -torch.mean(output))
+        loss_gen = generator_loss(r=real, f=fake, m=mask, d=output)
         gen.zero_grad()
         loss_gen.backward()
         opt_gen.step()
@@ -160,7 +165,7 @@ for epoch in range(Num_epochs):
         writer_g_loss.add_scalar('Generator Loss', loss_gen, global_step=step)
 
         # display results at specified intervals
-        if batch_idx % 10 == 0:
+        if batch_idx % 1 == 0:
             print(
                 f"---------------------------------------------- \n"
                 f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}] \n"
