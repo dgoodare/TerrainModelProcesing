@@ -32,8 +32,8 @@ def generator_loss(r, f, m, d):
     # pixel-wise loss
     i = torch.multiply(f, m)
     t = torch.multiply(r, m)
-    loss = torch.nn.MSELoss()
-    pxlLoss = loss(i, t)
+    mse_loss = torch.nn.MSELoss()
+    pxlLoss = mse_loss(i, t)
 
     # context loss
     """
@@ -44,10 +44,11 @@ def generator_loss(r, f, m, d):
         else: """
 
     # perceptual loss
-    prcpLoss = torch.log(1-d)
-    print(f"pxl loss: {pxlLoss}")
+    bce_loss = torch.nn.BCELoss()
+    prcpLoss = bce_loss(f, r)
+    print(prcpLoss)
 
-    return pxlLoss
+    return pxlLoss + 0.1*prcpLoss
 
 
 # Define Hyper-parameters
@@ -74,6 +75,7 @@ transforms = transforms.Compose(
 )
 
 # load the dataset
+CreateDataset.Create()
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
 print("Dataset loaded...")
