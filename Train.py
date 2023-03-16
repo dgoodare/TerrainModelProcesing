@@ -30,10 +30,8 @@ def discriminator_loss(x, y):
 def generator_loss(r, f, m, d):
 
     # pixel-wise loss
-    i = torch.multiply(f, m)
-    t = torch.multiply(r, m)
-    mse_loss = torch.nn.MSELoss()
-    pxlLoss = mse_loss(i, t)
+    diff = r - f
+    pxlLoss = torch.mean(diff)
 
     # context loss
     """
@@ -44,11 +42,11 @@ def generator_loss(r, f, m, d):
         else: """
 
     # perceptual loss
-    bce_loss = torch.nn.BCELoss()
-    prcpLoss = bce_loss(f, r)
-    print(prcpLoss)
+    prcpLoss = torch.log(1-torch.mean(d))
 
-    return pxlLoss + 0.1*prcpLoss
+    print(f"pxl: {pxlLoss}, prcp: {prcpLoss}")
+
+    return pxlLoss + prcpLoss
 
 
 # Define Hyper-parameters
@@ -75,7 +73,7 @@ transforms = transforms.Compose(
 )
 
 # load the dataset
-CreateDataset.Create()
+# CreateDataset.Create()
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
 print("Dataset loaded...")
@@ -156,9 +154,11 @@ for epoch in range(Num_epochs):
                 p.data.clamp_(-Weight_clip, Weight_clip)
 
         # train generator
-        output = disc(fake).reshape(-1)
-        loss_gen = generator_loss(r=real, f=fake, m=mask, d=output)
         gen.zero_grad()
+        output = disc(fake).reshape(-1)
+
+        loss_gen = generator_loss(real, fake, mask, output)
+
         loss_gen.backward()
         opt_gen.step()
 
