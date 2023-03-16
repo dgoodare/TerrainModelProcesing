@@ -4,8 +4,9 @@ from skimage.draw import disk, ellipse, polygon
 import os
 import csv
 import time
-from osgeo import gdal
+from osgeo import gdal, osr
 import sys
+from PIL import Image
 
 img_size = 64
 
@@ -368,7 +369,7 @@ def createLookUp():
     return
 
 
-def main():
+def Create():
     startTime = time.time()
     driver = gdal.GetDriverByName('PDS4')
     driver.Register()
@@ -392,18 +393,40 @@ def main():
     print(f"Dataset created in {time.time()-startTime} seconds")
 
 
-def saveDEM():
-    array = np.load('outputSlices/m1331540878le_1.npy')
-    driver = gdal.GetDriverByName('PDS4')
+def saveDEM(filePath):
+    tensor = torch.load(filePath)
+    tensor = torch.squeeze(tensor)
+    array = torch.Tensor.numpy(tensor)
+
+    # save as image for reference
+    Image.fromarray(np.uint8(array)).save('out.png', 'PNG')
+
+    d_type = gdal.GDT_Float32
+    driver = gdal.GetDriverByName("PDS4")
+    raster = driver.Create('out.img', array.shape[0], array.shape[1], 1, d_type)
+    band = raster.GetRasterBand(1)
+    band.WriteArray(array)
+
+    # get transform and projection info
+    transformRef, projectionRef = GetGeoRefData()
+    print(transformRef)
+    print(projectionRef)
+    raster.SetGeoTransform(transformRef)
+    raster.SetProjection(projectionRef)
+
+    band.FlushCache()
+
+
+def GetGeoRefData():
+    driver = gdal.GetDriverByName('GTiff')
     driver.Register()
+    file_name = 'LROLRC_0042A/lrolrc_0042a/data/esm4/2019355/nac/m1331540878le.img'
+    data = gdal.Open(file_name)
 
-    outDEM = driver.Create("outputDEM.xml", array.shape[0], array.shape[1], 1, gdal.GDT_CFloat32)
+    return data.GetGeoTransform(), data.GetProjectionRef()
 
-    if outDEM is None:
-        print("unable to save DEM")
 
-# saveDEM()
-
+saveDEM('outputSlices/m1331540878le_1.pt')
 
 # main()
 
