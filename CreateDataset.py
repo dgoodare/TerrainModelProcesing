@@ -5,6 +5,7 @@ import os
 import csv
 import time
 from osgeo import gdal, osr
+import rasterio
 import sys
 from PIL import Image
 
@@ -392,41 +393,6 @@ def Create():
     createLookUp()
     print(f"Dataset created in {time.time()-startTime} seconds")
 
-
-def saveDEM(filePath):
-    tensor = torch.load(filePath)
-    tensor = torch.squeeze(tensor)
-    array = torch.Tensor.numpy(tensor)
-
-    # save as image for reference
-    Image.fromarray(np.uint8(array)).save('out.png', 'PNG')
-
-    d_type = gdal.GDT_Float32
-    driver = gdal.GetDriverByName("PDS4")
-    raster = driver.Create('out.img', array.shape[0], array.shape[1], 1, d_type)
-    band = raster.GetRasterBand(1)
-    band.WriteArray(array)
-
-    # get transform and projection info
-    transformRef, projectionRef = GetGeoRefData()
-    print(transformRef)
-    print(projectionRef)
-    raster.SetGeoTransform(transformRef)
-    raster.SetProjection(projectionRef)
-
-    band.FlushCache()
-
-
-def GetGeoRefData():
-    driver = gdal.GetDriverByName('GTiff')
-    driver.Register()
-    file_name = 'LROLRC_0042A/lrolrc_0042a/data/esm4/2019355/nac/m1331540878le.img'
-    data = gdal.Open(file_name)
-
-    return data.GetGeoTransform(), data.GetProjectionRef()
-
-
-saveDEM('outputSlices/m1331540878le_1.pt')
 
 # main()
 
