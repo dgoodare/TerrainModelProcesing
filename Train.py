@@ -1,3 +1,5 @@
+import sys
+
 import torch
 import torch.nn as nn
 import torch.optim as optim  # package implementing various optimisation algorithms
@@ -6,6 +8,9 @@ from torch.optim import lr_scheduler  # provides methods for adjusting the learn
 from torch.utils.data import DataLoader  # module for iterating over a dataset
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
+
+from pathlib import Path
+from shutil import rmtree
 
 import DatasetUtils
 from DEMDataset import DEMDataset
@@ -46,6 +51,15 @@ def generator_loss(r, f, m, d):
     # print(f"pxl: {pxlLoss}, prcp: {prcpLoss}")
 
     return pxlLoss + prcpLoss
+
+
+def CleanLogs():
+    """Removes old log data"""
+    for path in Path("logs").glob("**/*"):
+        if path.is_file():
+            path.unlink()
+        elif path.is_dir():
+            rmtree(path)
 
 
 # Define Hyper-parameters
@@ -107,6 +121,7 @@ opt_disc = optim.Adam(params=disc.parameters(),
 fixed_noise = torch.randn(32, Z_dim, 1, 1).to(device)
 
 # Data Visualisation stuff
+CleanLogs()
 writer_real = SummaryWriter(f"logs/real")
 writer_fake_masked = SummaryWriter(f"logs/fake_masked")
 writer_fake_raw = SummaryWriter(f"logs/fake_raw")
