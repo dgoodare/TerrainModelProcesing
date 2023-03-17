@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from CreateDataset import img_size
+from DatasetUtils import img_size
 
 
 class Discriminator(nn.Module):
