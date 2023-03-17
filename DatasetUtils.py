@@ -4,10 +4,9 @@ from skimage.draw import disk, ellipse, polygon
 import os
 import csv
 import time
-from osgeo import gdal, osr
-import rasterio
+from osgeo import gdal
 import sys
-from PIL import Image
+import pandas as pd
 
 img_size = 64
 
@@ -364,13 +363,11 @@ def createLookUp():
     except OSError:
         print("Failed to create lookUpTable.csv")
 
-    f = open("LookUp/lookUpTable.csv")
-    numSamples = len(f.readlines())
-    print(f"Number of samples: {numSamples}")
     return
 
 
 def Create():
+    """Given an PDS4 input, creates a dataset of slices from the input DEM"""
     startTime = time.time()
     driver = gdal.GetDriverByName('PDS4')
     driver.Register()
@@ -391,8 +388,21 @@ def Create():
 
     slice_DEM(np_array, img_size, 'm1331540878le', 'outputSlices')
     createLookUp()
-    print(f"Dataset created in {time.time()-startTime} seconds")
+    print(f"Dataset created in {time.time()-startTime:.4f} seconds")
 
 
-# main()
+def Clean(batchSize):
+    """Ensures that the dataset is the correct size"""
+    filePath = 'LookUp/lookUpTable.csv'
+    lookUp = pd.read_csv(filePath)
+    length = len(lookUp)
+    print(f"CSV length: {length}")
+    excess = length % batchSize
+    print(f"Excess: {excess}")
+    if excess > 0:
+        diff = length - excess
+        lookUp = lookUp.iloc[:diff]
+        print(f"Length after cleaning: {len(lookUp)}")
+        print(f"Excess after cleaning: {len(lookUp) % batchSize}")
+        lookUp.to_csv(filePath, index=False)
 

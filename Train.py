@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader  # module for iterating over a dataset
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
-import CreateDataset
+import DatasetUtils
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
 
@@ -43,8 +43,7 @@ def generator_loss(r, f, m, d):
 
     # perceptual loss
     prcpLoss = torch.log(1-torch.mean(d))
-
-    print(f"pxl: {pxlLoss}, prcp: {prcpLoss}")
+    # print(f"pxl: {pxlLoss}, prcp: {prcpLoss}")
 
     return pxlLoss + prcpLoss
 
@@ -53,14 +52,14 @@ def generator_loss(r, f, m, d):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Learning_rate = 1e-4
 Batch_size = 16
-Img_Size = CreateDataset.img_size
+Img_Size = DatasetUtils.img_size
 Img_channels = 1
 Z_dim = 100
-Num_epochs = 50
+Num_epochs = 10
 Features_disc = 64
 Features_gen = 64
 Disc_iters = 5
-Weight_clip = 0.01  # TODO: check what this is too
+Weight_clip = 0.01  # TODO: check what this is
 beta1 = 0.9
 beta2 = 0.999
 epsilon = 1e-08
@@ -73,20 +72,18 @@ transforms = transforms.Compose(
 )
 
 # load the dataset
-# CreateDataset.Create()
+DatasetUtils.Create()
+DatasetUtils.Clean(batchSize=Batch_size)
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
 print("Dataset loaded...")
 print(f"Dataset size: {Dataset_size}")
 # split into training and testing sets with an 80/20 ratio
 # trainingSet, testingSet = torch.utils.data.random_split(dataset, [int(Dataset_size*8/10), int(Dataset_size*2/10)])
-print("Dataset split...")
 # create dataloaders for each set
 # TODO: look into multiprocessing
 trainingLoader = DataLoader(dataset=dataset, batch_size=Batch_size, shuffle=True)
-print("training loader created...")
 # testingLoader = DataLoader(dataset=testingSet, batch_size=Batch_size, shuffle=True)
-print("testing loader created...")
 
 
 # Initialise the two networks
@@ -105,17 +102,16 @@ opt_disc = optim.Adam(params=disc.parameters(),
                       lr=Learning_rate,
                       betas=(beta1, beta2),
                       eps=epsilon)
-print("optimisers defined...")
 
 # Define random noise to being training with
 fixed_noise = torch.randn(32, Z_dim, 1, 1).to(device)
 
 # Data Visualisation stuff
 writer_real = SummaryWriter(f"logs/real")
-writer_fake = SummaryWriter(f"logs/fake")
+writer_fake_masked = SummaryWriter(f"logs/fake_masked")
+writer_fake_raw = SummaryWriter(f"logs/fake_raw")
 writer_d_loss = SummaryWriter(f"logs/loss_d")
 writer_g_loss = SummaryWriter(f"logs/loss_g")
-print("Summary writers created...")
 
 step = 0
 gen.train()
@@ -124,6 +120,11 @@ print("ready to train...")
 
 
 for epoch in range(Num_epochs):
+    print(
+        "\n==============================================\n"
+        f"Epoch [{epoch}/{Num_epochs}] \n"
+        "==============================================\n"
+    )
     for batch_idx, sample in enumerate(trainingLoader):
         # retrieve ground truth and corresponding mask
         real = sample[0].to(device)
@@ -145,6 +146,7 @@ for epoch in range(Num_epochs):
             # send real and fake DEMs to the discriminator
             disc_real = disc(real).reshape(-1)
             disc_fake = disc(fake).reshape(-1)
+            # calculate loss
             loss_disc = discriminator_loss(disc_real, disc_fake)
             disc.zero_grad()
             loss_disc.backward(retain_graph=True)
@@ -156,9 +158,8 @@ for epoch in range(Num_epochs):
         # train generator
         gen.zero_grad()
         output = disc(fake).reshape(-1)
-
+        # calculate loss
         loss_gen = generator_loss(real, fake, mask, output)
-
         loss_gen.backward()
         opt_gen.step()
 
@@ -170,16 +171,19 @@ for epoch in range(Num_epochs):
         if batch_idx % 1 == 0:
             print(
                 f"---------------------------------------------- \n"
-                f"|| Epoch [{epoch}/{Num_epochs}] -- Batch [{batch_idx}/{len(trainingLoader)}] \n"
-                f"|| Loss D: {loss_disc:.4f}, loss G: {loss_gen:.4f}"
+                f"-> Batch [{batch_idx}/{len(trainingLoader)}]\n"
+                f"|| Discriminator Loss: {loss_disc:.4f} \n"
+                f"|| Generator Loss: {loss_gen:.4f}"
             )
 
             with torch.no_grad():
                 # pick up to 16 examples
                 img_grid_real = torchvision.utils.make_grid(real[:16])
                 img_grid_fake = torchvision.utils.make_grid(fake[:16])
+                img_grid_raw = torchvision.utils.make_grid(generatedDEM[:16])
                 writer_real.add_image("Real", img_grid_real, global_step=step)
-                writer_fake.add_image("Fake", img_grid_fake, global_step=step)
+                writer_fake_masked.add_image("Fake Masked", img_grid_fake, global_step=step)
+                writer_fake_raw.add_image("Fake Raw", img_grid_raw, global_step=step)
 
         step += 1
 
