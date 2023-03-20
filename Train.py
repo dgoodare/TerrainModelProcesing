@@ -1,11 +1,8 @@
-import sys
-
 import torch
-import torch.nn as nn
-import torch.optim as optim  # package implementing various optimisation algorithms
+import torch.optim as optim
 import torchvision
 from torch.optim import lr_scheduler  # provides methods for adjusting the learning rate
-from torch.utils.data import DataLoader  # module for iterating over a dataset
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
@@ -23,12 +20,7 @@ def reverse_mask(x):
 
 
 def discriminator_loss(x, y):
-    """
-    Wasserstein loss function
-    :param x: real
-    :param y: fake
-    :return:
-    """
+    """ Wasserstein loss function """
     return -(torch.mean(x) - torch.mean(y))
 
 
@@ -54,7 +46,7 @@ def generator_loss(r, f, m, d):
 
 
 def CleanLogs():
-    """Removes old log data"""
+    """Remove old log data"""
     for path in Path("logs").glob("**/*"):
         if path.is_file():
             path.unlink()
@@ -64,7 +56,6 @@ def CleanLogs():
 
 # Define Hyper-parameters
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-Learning_rate = 1e-4
 Batch_size = 16
 Img_Size = DatasetUtils.img_size
 Img_channels = 1
@@ -108,14 +99,22 @@ print("discriminator initialised...")
 # initialise weights
 
 # Optimiser Functions
-opt_gen = optim.Adam(params=gen.parameters(),
-                     lr=Learning_rate,
-                     betas=(beta1, beta2),
-                     eps=epsilon)
 opt_disc = optim.Adam(params=disc.parameters(),
-                      lr=Learning_rate,
                       betas=(beta1, beta2),
                       eps=epsilon)
+
+opt_gen = optim.Adam(params=gen.parameters(),
+                     betas=(beta1, beta2),
+                     eps=epsilon)
+
+# learning rate schedulers
+disc_lr = lr_scheduler.StepLR(optimizer=opt_disc,
+                              step_size=5,
+                              gamma=0.5)
+
+gen_lr = lr_scheduler.StepLR(optimizer=opt_gen,
+                             step_size=5,
+                             gamma=0.5)
 
 # Define random noise to being training with
 fixed_noise = torch.randn(32, Z_dim, 1, 1).to(device)
@@ -127,6 +126,8 @@ writer_fake_masked = SummaryWriter(f"logs/fake_masked")
 writer_fake_raw = SummaryWriter(f"logs/fake_raw")
 writer_d_loss = SummaryWriter(f"logs/loss_d")
 writer_g_loss = SummaryWriter(f"logs/loss_g")
+writer_d_lr = SummaryWriter(f"logs/lr_d")
+writer_g_lr = SummaryWriter(f"logs/lr_g")
 
 step = 0
 gen.train()
@@ -166,6 +167,7 @@ for epoch in range(Num_epochs):
             disc.zero_grad()
             loss_disc.backward(retain_graph=True)
             opt_disc.step()
+            disc_lr.step()
 
             for p in disc.parameters():
                 p.data.clamp_(-Weight_clip, Weight_clip)
@@ -177,10 +179,14 @@ for epoch in range(Num_epochs):
         loss_gen = generator_loss(real, fake, mask, output)
         loss_gen.backward()
         opt_gen.step()
+        gen_lr.step()
 
         # plot loss functions - not directly useful but can be used to illustrate a point about evaluating GANs
         writer_d_loss.add_scalar('Discriminator Loss', loss_disc, global_step=step)
         writer_g_loss.add_scalar('Generator Loss', loss_gen, global_step=step)
+        # plot learning rates
+        writer_d_lr.add_scalar('Discriminator Learning Rate', disc_lr.get_last_lr()[0], global_step=step)
+        writer_g_lr.add_scalar('Generator Learning Rate', gen_lr.get_last_lr()[0], global_step=step)
 
         # display results at specified intervals
         if batch_idx % 1 == 0:
@@ -188,7 +194,9 @@ for epoch in range(Num_epochs):
                 f"---------------------------------------------- \n"
                 f"-> Batch [{batch_idx}/{len(trainingLoader)}]\n"
                 f"|| Discriminator Loss: {loss_disc:.4f} \n"
-                f"|| Generator Loss: {loss_gen:.4f}"
+                f"|| DLR: {disc_lr.get_last_lr()} \n"
+                f"|| Generator Loss: {loss_gen:.4f} \n"
+                f"|| GLR: {gen_lr.get_last_lr()}"
             )
 
             with torch.no_grad():
