@@ -6,6 +6,7 @@ import csv
 import time
 from osgeo import gdal
 import sys
+import pandas as pd
 
 img_size = 64
 
@@ -362,13 +363,11 @@ def createLookUp():
     except OSError:
         print("Failed to create lookUpTable.csv")
 
-    f = open("LookUp/lookUpTable.csv")
-    numSamples = len(f.readlines())
-    print(f"Number of samples: {numSamples}")
     return
 
 
-def main():
+def Create():
+    """Given an PDS4 input, creates a dataset of slices from the input DEM"""
     startTime = time.time()
     driver = gdal.GetDriverByName('PDS4')
     driver.Register()
@@ -389,21 +388,18 @@ def main():
 
     slice_DEM(np_array, img_size, 'm1331540878le', 'outputSlices')
     createLookUp()
-    print(f"Dataset created in {time.time()-startTime} seconds")
+    print(f"Dataset created in {time.time()-startTime:.4f} seconds")
 
 
-def saveDEM():
-    array = np.load('outputSlices/m1331540878le_1.npy')
-    driver = gdal.GetDriverByName('PDS4')
-    driver.Register()
-
-    outDEM = driver.Create("outputDEM.xml", array.shape[0], array.shape[1], 1, gdal.GDT_CFloat32)
-
-    if outDEM is None:
-        print("unable to save DEM")
-
-# saveDEM()
-
-
-# main()
+def Clean(batchSize):
+    """Ensures that the dataset is the correct size"""
+    filePath = 'LookUp/lookUpTable.csv'
+    lookUp = pd.read_csv(filePath)
+    length = len(lookUp)
+    excess = length % batchSize
+    if excess > 0:
+        diff = length - excess
+        lookUp = lookUp.iloc[:diff]
+        print(f"Dataset trimmed to fit with a batch size of {batchSize}")
+        lookUp.to_csv(filePath, index=False)
 
