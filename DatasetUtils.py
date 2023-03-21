@@ -396,13 +396,10 @@ def Clean(batchSize):
     filePath = 'LookUp/lookUpTable.csv'
     lookUp = pd.read_csv(filePath)
     length = len(lookUp)
-    print(f"CSV length: {length}")
     excess = length % batchSize
-    print(f"Excess: {excess}")
     if excess > 0:
         diff = length - excess
         lookUp = lookUp.iloc[:diff]
-        print(f"Length after cleaning: {len(lookUp)}")
-        print(f"Excess after cleaning: {len(lookUp) % batchSize}")
+        print(f"Dataset trimmed to fit with a batch size of {batchSize}")
         lookUp.to_csv(filePath, index=False)
 
