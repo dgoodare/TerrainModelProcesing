@@ -6,10 +6,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
-from pathlib import Path
-from shutil import rmtree
-
 import DatasetUtils
+from FileManager import CleanLogs, SaveModel, CreateModelDir
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
 
@@ -43,15 +41,6 @@ def generator_loss(r, f, m, d):
     # print(f"pxl: {pxlLoss}, prcp: {prcpLoss}")
 
     return pxlLoss + prcpLoss
-
-
-def CleanLogs():
-    """Remove old log data"""
-    for path in Path("logs").glob("**/*"):
-        if path.is_file():
-            path.unlink()
-        elif path.is_dir():
-            rmtree(path)
 
 
 # Define Hyper-parameters
@@ -108,6 +97,7 @@ opt_gen = optim.Adam(params=gen.parameters(),
                      eps=epsilon)
 
 # learning rate schedulers
+# TODO: evaluate different learning rate schedulers
 disc_lr = lr_scheduler.StepLR(optimizer=opt_disc,
                               step_size=5,
                               gamma=0.5)
@@ -129,6 +119,8 @@ writer_g_loss = SummaryWriter(f"logs/loss_g")
 writer_d_lr = SummaryWriter(f"logs/lr_d")
 writer_g_lr = SummaryWriter(f"logs/lr_g")
 
+# create a directory to save trained models created in this training run
+modelDir = CreateModelDir()
 step = 0
 gen.train()
 disc.train()
@@ -210,7 +202,10 @@ for epoch in range(Num_epochs):
 
         step += 1
 
-    # save model at specified epochs
-    if epoch+1 % 10 == 0:
-        torch.save(gen, 'gen_epoch_{}.pth'.format(epoch))
-        print(f"Model {epoch} saved")
+        # save model at specified epochs
+    if epoch % 10 == 0:
+        genFP = str(epoch) + "_gen" + '.pth'
+        discFP = str(epoch) + "_disc" + '.pth'
+        SaveModel(gen.state_dict(), modelDir, genFP)
+        SaveModel(gen.state_dict(), modelDir, discFP)
+        print(f"Models for epoch {epoch} saved")
