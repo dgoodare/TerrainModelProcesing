@@ -14,7 +14,7 @@ from Models import Discriminator, Generator
 
 def reverse_mask(x):
     """A function to reverse an image mask"""
-    return 1-x
+    return 1 - x
 
 
 def discriminator_loss(x, y):
@@ -23,10 +23,9 @@ def discriminator_loss(x, y):
 
 
 def generator_loss(r, f, m, d):
-
     # pixel-wise loss
     diff = r - f
-    pxlLoss = torch.mean(diff)
+    pxlLoss = torch.sqrt(torch.mean(diff*diff))
 
     # context loss
     """
@@ -37,7 +36,7 @@ def generator_loss(r, f, m, d):
         else: """
 
     # perceptual loss
-    prcpLoss = torch.log(1-torch.mean(d))
+    prcpLoss = torch.log(1 - torch.mean(d))
     # print(f"pxl: {pxlLoss}, prcp: {prcpLoss}")
 
     return pxlLoss + prcpLoss
@@ -57,6 +56,7 @@ Weight_clip = 0.01  # TODO: check what this is
 beta1 = 0.9
 beta2 = 0.999
 epsilon = 1e-08
+Learning_rate = 0.0002
 
 # transformations applied to datasets
 transforms = transforms.Compose(
@@ -89,43 +89,45 @@ print("discriminator initialised...")
 
 # Optimiser Functions
 opt_disc = optim.Adam(params=disc.parameters(),
+                      lr=Learning_rate,
                       betas=(beta1, beta2),
                       eps=epsilon)
 
 opt_gen = optim.Adam(params=gen.parameters(),
+                     lr=Learning_rate,
                      betas=(beta1, beta2),
                      eps=epsilon)
 
+"""
 # learning rate schedulers
 # TODO: evaluate different learning rate schedulers
-disc_lr = lr_scheduler.StepLR(optimizer=opt_disc,
-                              step_size=5,
-                              gamma=0.5)
+disc_lr = lr_scheduler.CosineAnnealingLR(optimizer=opt_disc,
+                                         T_max=16,
+                                         eta_min=0.0002)
 
-gen_lr = lr_scheduler.StepLR(optimizer=opt_gen,
-                             step_size=5,
-                             gamma=0.5)
-
+gen_lr = lr_scheduler.CosineAnnealingLR(optimizer=opt_gen,
+                                        T_max=16,
+                                        eta_min=0.0002)
+"""
 # Define random noise to being training with
 fixed_noise = torch.randn(32, Z_dim, 1, 1).to(device)
 
 # Data Visualisation stuff
-CleanLogs()
-writer_real = SummaryWriter(f"logs/real")
-writer_fake_masked = SummaryWriter(f"logs/fake_masked")
-writer_fake_raw = SummaryWriter(f"logs/fake_raw")
-writer_d_loss = SummaryWriter(f"logs/loss_d")
-writer_g_loss = SummaryWriter(f"logs/loss_g")
-writer_d_lr = SummaryWriter(f"logs/lr_d")
-writer_g_lr = SummaryWriter(f"logs/lr_g")
+modelDir, logDir = CreateModelDir()
+writer_real = SummaryWriter(logDir + "/real")
+writer_fake_masked = SummaryWriter(logDir + "/fake_masked")
+writer_fake_raw = SummaryWriter(logDir + "/fake_raw")
+writer_d_loss = SummaryWriter(logDir + "/loss_d")
+writer_g_loss = SummaryWriter(logDir + "/loss_g")
+writer_d_lr = SummaryWriter(logDir + "/lr_d")
+writer_g_lr = SummaryWriter(logDir + "/lr_g")
 
 # create a directory to save trained models created in this training run
-modelDir = CreateModelDir()
+
 step = 0
 gen.train()
 disc.train()
 print("ready to train...")
-
 
 for epoch in range(Num_epochs):
     print(
@@ -140,7 +142,7 @@ for epoch in range(Num_epochs):
 
         # train discriminator
         for _ in range(Disc_iters):
-            noise = torch.randn((Batch_size, Z_dim, 1, 1)).to(device)
+            noise = torch.rand((Batch_size, Z_dim, 1, 1)).to(device)
             generatedDEM = gen(x=noise)
 
             # apply the reverse mask operation to the generated DEM to create the fake patch
@@ -159,7 +161,7 @@ for epoch in range(Num_epochs):
             disc.zero_grad()
             loss_disc.backward(retain_graph=True)
             opt_disc.step()
-            disc_lr.step()
+            # disc_lr.step()
 
             for p in disc.parameters():
                 p.data.clamp_(-Weight_clip, Weight_clip)
@@ -171,14 +173,14 @@ for epoch in range(Num_epochs):
         loss_gen = generator_loss(real, fake, mask, output)
         loss_gen.backward()
         opt_gen.step()
-        gen_lr.step()
+        # gen_lr.step()
 
         # plot loss functions - not directly useful but can be used to illustrate a point about evaluating GANs
         writer_d_loss.add_scalar('Discriminator Loss', loss_disc, global_step=step)
         writer_g_loss.add_scalar('Generator Loss', loss_gen, global_step=step)
         # plot learning rates
-        writer_d_lr.add_scalar('Discriminator Learning Rate', disc_lr.get_last_lr()[0], global_step=step)
-        writer_g_lr.add_scalar('Generator Learning Rate', gen_lr.get_last_lr()[0], global_step=step)
+        # writer_d_lr.add_scalar('Discriminator Learning Rate', disc_lr.get_last_lr()[0], global_step=step)
+        # writer_g_lr.add_scalar('Generator Learning Rate', gen_lr.get_last_lr()[0], global_step=step)
 
         # display results at specified intervals
         if batch_idx % 1 == 0:
@@ -186,9 +188,9 @@ for epoch in range(Num_epochs):
                 f"---------------------------------------------- \n"
                 f"-> Batch [{batch_idx}/{len(trainingLoader)}]\n"
                 f"|| Discriminator Loss: {loss_disc:.4f} \n"
-                f"|| DLR: {disc_lr.get_last_lr()} \n"
+                # f"|| DLR: {disc_lr.get_last_lr()} \n"
                 f"|| Generator Loss: {loss_gen:.4f} \n"
-                f"|| GLR: {gen_lr.get_last_lr()}"
+                #  f"|| GLR: {gen_lr.get_last_lr()}"
             )
 
             with torch.no_grad():
@@ -203,9 +205,15 @@ for epoch in range(Num_epochs):
         step += 1
 
         # save model at specified epochs
-    if epoch % 10 == 0:
-        genFP = str(epoch) + "_gen" + '.pth'
-        discFP = str(epoch) + "_disc" + '.pth'
-        SaveModel(gen.state_dict(), modelDir, genFP)
-        SaveModel(gen.state_dict(), modelDir, discFP)
+    if epoch % 1 == 0:
+        fileName = "epoch_" + str(epoch) + '.pth'
+
+        checkpoint = {'G': gen,
+                      'D': disc,
+                      'G_state': gen.state_dict(),
+                      'D_state': disc.state_dict(),
+                      'Optim_G': opt_gen.state_dict(),
+                      'Optim_D': opt_disc.state_dict()}
+
+        SaveModel(checkpoint, modelDir, fileName)
         print(f"Models for epoch {epoch} saved")
