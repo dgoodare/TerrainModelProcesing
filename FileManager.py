@@ -27,10 +27,12 @@ def CreateModelDir():
     time = now.strftime("%H-%M")
     dirName = date + '_' + time
     path = 'models/' + dirName
+    logDir = path + '/logs'
     # create directory
     try:
         os.mkdir(path)
+        os.mkdir(logDir)
     except OSError as e:
         print(e)
 
-    return path
+    return path, logDir
