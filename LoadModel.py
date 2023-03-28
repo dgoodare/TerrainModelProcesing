@@ -48,7 +48,7 @@ def LoadOld(g, d):
     Train(gen, disc, opt_gen, opt_disc)
 
 
-def Load(file):
+def Load(file, mode=''):
     checkpoint = torch.load(file)
     print(checkpoint.keys())
     gen = checkpoint["G"]
@@ -57,17 +57,22 @@ def Load(file):
     disc.load_state_dict(checkpoint["D_state"])
 
     # Optimiser Functions
-    opt_disc = optim.Adam(params=disc.parameters(),
-                          betas=(0.9, 0.999),
-                          eps=1e-08)
-
     opt_gen = optim.Adam(params=gen.parameters(),
                          betas=(0.9, 0.999),
                          eps=1e-08)
     opt_gen.load_state_dict(checkpoint['Optim_G'])
+
+    opt_disc = optim.Adam(params=disc.parameters(),
+                          betas=(0.9, 0.999),
+                          eps=1e-08)
     opt_disc.load_state_dict(checkpoint['Optim_D'])
 
-    Train(gen, disc, opt_gen, opt_disc)
+    if mode == 'Train':
+        Train(gen, disc, opt_gen, opt_disc)
+    elif mode == 'Eval':
+        Evaluate(gen)
+    else:
+        print(f"{mode} is not a valid mode")
 
 
 def reverse_mask(x):
@@ -83,7 +88,7 @@ def discriminator_loss(x, y):
 def generator_loss(r, f, m, d):
     # pixel-wise loss
     diff = r - f
-    pxlLoss = torch.mean(diff)
+    pxlLoss = torch.sqrt(torch.mean(diff*diff))
 
     # context loss
     """
@@ -208,6 +213,12 @@ def Train(gen, disc, opt_gen, opt_disc):
             step += 1
 
 
-# LoadOld('models/24-03-2023_15-54/49_gen.pth', 'models/24-03-2023_15-54/49_disc.pth')
+def Evaluate(model):
+    gen_input = torch.load('outputSlices/m1331540878le_18.pt')
+    model.eval()
+
+    with torch.no_grad():
+        output = model(gen_input)
+
 
 Load('models/27-03-2023_20-37/epoch_9.pth')
