@@ -6,6 +6,8 @@ from skimage import filters, feature
 from skimage.color import rgb2gray
 import os
 import torch
+import random
+from torchmetrics.image.fid import FrechetInceptionDistance
 
 
 def DetectEdges(directory):
@@ -16,18 +18,18 @@ def DetectEdges(directory):
     cannyList = []
     num_images = 5
     count = 0
+    dirLength = len(os.listdir(directory))
+    rand_idx = random.randrange(dirLength - num_images)
 
-    for file in os.listdir(directory):
+    for file in os.listdir(directory)[rand_idx:rand_idx+num_images]:
         tensor = torch.load(directory + "/" + file)
         tensor = torch.squeeze(tensor)
         img = torch.Tensor.numpy(tensor)
 
-        sobel = filters.sobel(img)
         prewitt = filters.prewitt(img)
         canny = feature.canny(img)
 
         originalList.append(img)
-        sobelList.append(sobel)
         prewittList.append(prewitt)
         cannyList.append(canny)
         count += 1
@@ -46,6 +48,27 @@ def DetectEdges(directory):
         ax[idx, 2].imshow(cannyList[idx])
         ax[idx, 2].axis('off')
     plt.show()
+
+
+def CalculateFID():
+    fid = FrechetInceptionDistance(feature=64)
+    realDir = ''
+    fakeDir = ''
+    real = FolderToTensor(realDir)
+    fake = FolderToTensor(fakeDir)
+
+    fid.update(real, real=True)
+    fid.update(fake, real=False)
+    fid.compute()
+
+
+def FolderToTensor(folder):
+    t = torch.Tensor()
+    for file in os.listdir(folder):
+        f = torch.load(file)
+        t = torch.concat([t, f], dim=1)
+
+    return t
 
 
 DetectEdges("outputSlices")
