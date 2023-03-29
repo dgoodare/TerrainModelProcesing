@@ -71,5 +71,25 @@ def FolderToTensor(folder):
     return t
 
 
+def CalculateRMSE(realDir, fakeDir):
+    real, fake = [], []
+
+    for r in os.listdir(realDir):
+        real.append(torch.load(r))
+
+    for f in os.listdir(fakeDir):
+        fake.append(torch.load(f))
+
+    assert len(real) == len(fake)
+
+    rmse = torch.empty()
+
+    for x in range(len(real)):
+        diff = fake[x] - real[x]
+        rmse[x] = torch.sqrt(torch.mean(diff*diff))
+
+    return torch.mean(rmse)
+
+
 DetectEdges("outputSlices")
 
