@@ -13,9 +13,9 @@ from torchmetrics.image.fid import FrechetInceptionDistance
 def DetectEdges(directory):
     """Highlights prominent edges in images in a given directory"""
     originalList = []
-    sobelList = []
     prewittList = []
     cannyList = []
+    harrisList = []
     num_images = 5
     count = 0
     dirLength = len(os.listdir(directory))
@@ -26,20 +26,29 @@ def DetectEdges(directory):
         tensor = torch.squeeze(tensor)
         img = torch.Tensor.numpy(tensor)
 
+        # prewitt edge detection
         prewitt = filters.prewitt(img)
+        # canny edge detection
         canny = feature.canny(img)
+        # harris corner detection
+        harris = feature.corner_harris(img, k=0.01)
+        peaks = feature.corner_peaks(harris, min_distance=5)
+        subpix = feature.corner_subpix(img, peaks, window_size=64)
 
         originalList.append(img)
         prewittList.append(prewitt)
         cannyList.append(canny)
+        harrisList.append(subpix)
+
         count += 1
         if count > num_images:
             break
 
-    f, ax = plt.subplots(num_images, 3)
+    f, ax = plt.subplots(num_images, 4)
     ax[0, 0].set_title("Original")
     ax[0, 1].set_title("Prewitt")
     ax[0, 2].set_title("Canny")
+    ax[0, 3].set_title("Harris Corner")
     for idx in range(num_images):
         ax[idx, 0].imshow(originalList[idx])
         ax[idx, 0].axis('off')
@@ -47,6 +56,9 @@ def DetectEdges(directory):
         ax[idx, 1].axis('off')
         ax[idx, 2].imshow(cannyList[idx])
         ax[idx, 2].axis('off')
+        ax[idx, 3].imshow(originalList[idx], interpolation='nearest')
+        ax[idx, 3].plot(peaks[:, 1], peaks[:, 0], '+r', markersize=5)
+        ax[idx, 3].axis('off')
     plt.show()
 
 
@@ -72,7 +84,7 @@ def FolderToTensor(folder):
 
 
 def CalculateRMSE(realDir, fakeDir):
-    real, fake = [], []
+    real, fake = torch.empty(), torch.empty()
 
     for r in os.listdir(realDir):
         real.append(torch.load(r))
