@@ -143,16 +143,8 @@ for epoch in range(Num_epochs):
         # train discriminator
         for _ in range(Disc_iters):
             noise = torch.rand((Batch_size, Z_dim, 1, 1)).to(device)
-            generatedDEM = gen(x=noise)
+            raw, fake = gen(x=noise, m=mask, r=real)
 
-            # apply the reverse mask operation to the generated DEM to create the fake patch
-            fakePatch = torch.multiply(generatedDEM, reverse_mask(mask))
-
-            # apply the mask to the real DEM to create the data void
-            maskedDEM = torch.multiply(real, mask)
-
-            # combine the fake patch with the masked DEM
-            fake = torch.add(maskedDEM, fakePatch)
             # send real and fake DEMs to the discriminator
             disc_real = disc(real).reshape(-1)
             disc_fake = disc(fake).reshape(-1)
@@ -197,7 +189,7 @@ for epoch in range(Num_epochs):
                 # pick up to 16 examples
                 img_grid_real = torchvision.utils.make_grid(real[:16])
                 img_grid_fake = torchvision.utils.make_grid(fake[:16])
-                img_grid_raw = torchvision.utils.make_grid(generatedDEM[:16])
+                img_grid_raw = torchvision.utils.make_grid(raw[:16])
                 writer_real.add_image("Real", img_grid_real, global_step=step)
                 writer_fake_masked.add_image("Fake Masked", img_grid_fake, global_step=step)
                 writer_fake_raw.add_image("Fake Raw", img_grid_raw, global_step=step)
