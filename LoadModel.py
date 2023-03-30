@@ -152,17 +152,9 @@ def Train(gen, disc, opt_gen, opt_disc):
 
             # train discriminator
             for _ in range(Disc_iters):
-                noise = torch.randn((Batch_size, Z_dim, 1, 1)).to(device)
-                generatedDEM = gen(x=noise)
+                noise = torch.rand((Batch_size, Z_dim, 1, 1)).to(device)
+                raw, fake = gen(x=noise, m=mask, r=real)
 
-                # apply the reverse mask operation to the generated DEM to create the fake patch
-                fakePatch = torch.multiply(generatedDEM, reverse_mask(mask))
-
-                # apply the mask to the real DEM to create the data void
-                maskedDEM = torch.multiply(real, mask)
-
-                # combine the fake patch with the masked DEM
-                fake = torch.add(maskedDEM, fakePatch)
                 # send real and fake DEMs to the discriminator
                 disc_real = disc(real).reshape(-1)
                 disc_fake = disc(fake).reshape(-1)
@@ -171,6 +163,7 @@ def Train(gen, disc, opt_gen, opt_disc):
                 disc.zero_grad()
                 loss_disc.backward(retain_graph=True)
                 opt_disc.step()
+                # disc_lr.step()
 
                 for p in disc.parameters():
                     p.data.clamp_(-Weight_clip, Weight_clip)
@@ -182,6 +175,7 @@ def Train(gen, disc, opt_gen, opt_disc):
             loss_gen = generator_loss(real, fake, mask, output)
             loss_gen.backward()
             opt_gen.step()
+            # gen_lr.step()
 
             # plot loss functions - not directly useful but can be used to illustrate a point about evaluating GANs
             writer_d_loss.add_scalar('Discriminator Loss', loss_disc, global_step=step)
@@ -196,16 +190,14 @@ def Train(gen, disc, opt_gen, opt_disc):
                     f"---------------------------------------------- \n"
                     f"-> Batch [{batch_idx}/{len(trainingLoader)}]\n"
                     f"|| Discriminator Loss: {loss_disc:.4f} \n"
-                    # f"|| DLR: {disc_lr.get_last_lr()} \n"
                     f"|| Generator Loss: {loss_gen:.4f} \n"
-                    # f"|| GLR: {gen_lr.get_last_lr()}"
                 )
 
                 with torch.no_grad():
                     # pick up to 16 examples
                     img_grid_real = torchvision.utils.make_grid(real[:16])
                     img_grid_fake = torchvision.utils.make_grid(fake[:16])
-                    img_grid_raw = torchvision.utils.make_grid(generatedDEM[:16])
+                    img_grid_raw = torchvision.utils.make_grid(raw[:16])
                     writer_real.add_image("Real", img_grid_real, global_step=step)
                     writer_fake_masked.add_image("Fake Masked", img_grid_fake, global_step=step)
                     writer_fake_raw.add_image("Fake Raw", img_grid_raw, global_step=step)

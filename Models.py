@@ -75,8 +75,15 @@ class Generator(nn.Module):
             nn.ReLU(),
         )
 
-    def forward(self, x):
-        return self.layers(x)
+    def forward(self, x, m, r):
+        raw = self.layers(x)
+        # apply reversed mask to generated data
+        fakePatch = torch.multiply(raw, (1-m))
+        # apply mask to ground truth
+        maskedDEM = torch.multiply(r, m)
+        fake = torch.add(fakePatch, maskedDEM)
+
+        return raw, fake
 
 
 def initialise_weights(model):
