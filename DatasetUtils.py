@@ -39,7 +39,8 @@ def slice_DEM(arr, size, in_file, outDir):
             print(f"{filename} could not be saved, or the file only contains partial data")
         idx += 1
 
-        if idx > 100:
+        # set the maximum number of slices to 20,000
+        if idx > 20000:
             break
 
 
@@ -383,10 +384,11 @@ def Create():
 
     np_array = np.array(data.GetRasterBand(1).ReadAsArray(), dtype='f')
 
-    print(np_array.shape)
-    print(np_array.dtype)
+    # remove void data at the edges of the DEM
+    h, w = np_array.shape
+    trimmed = np_array[0:h, 50:(w-50)]
 
-    slice_DEM(np_array, img_size, 'm1331540878le', 'outputSlices')
+    slice_DEM(trimmed, img_size, 'm1331540878le', 'outputSlices')
     createLookUp()
     print(f"Dataset created in {time.time()-startTime:.4f} seconds")
 
@@ -402,4 +404,3 @@ def Clean(batchSize):
         lookUp = lookUp.iloc[:diff]
         print(f"Dataset trimmed to fit with a batch size of {batchSize}")
         lookUp.to_csv(filePath, index=False)
-
