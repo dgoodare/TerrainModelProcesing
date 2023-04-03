@@ -66,18 +66,15 @@ transforms = transforms.Compose(
 )
 
 # load the dataset
-DatasetUtils.Create()
+# DatasetUtils.Create()
 DatasetUtils.Clean(batchSize=Batch_size)
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
 print("Dataset loaded...")
 print(f"Dataset size: {Dataset_size}")
-# split into training and testing sets with an 80/20 ratio
-# trainingSet, testingSet = torch.utils.data.random_split(dataset, [int(Dataset_size*8/10), int(Dataset_size*2/10)])
-# create dataloaders for each set
-# TODO: look into multiprocessing
+
+# create dataloader
 trainingLoader = DataLoader(dataset=dataset, batch_size=Batch_size, shuffle=True)
-# testingLoader = DataLoader(dataset=testingSet, batch_size=Batch_size, shuffle=True)
 
 
 # Initialise the two networks
@@ -98,17 +95,6 @@ opt_gen = optim.Adam(params=gen.parameters(),
                      betas=(beta1, beta2),
                      eps=epsilon)
 
-"""
-# learning rate schedulers
-# TODO: evaluate different learning rate schedulers
-disc_lr = lr_scheduler.CosineAnnealingLR(optimizer=opt_disc,
-                                         T_max=16,
-                                         eta_min=0.0002)
-
-gen_lr = lr_scheduler.CosineAnnealingLR(optimizer=opt_gen,
-                                        T_max=16,
-                                        eta_min=0.0002)
-"""
 # Define random noise to being training with
 fixed_noise = torch.randn(32, Z_dim, 1, 1).to(device)
 
@@ -121,10 +107,9 @@ writer_d_loss = SummaryWriter(logDir + "/loss_d")
 writer_g_loss = SummaryWriter(logDir + "/loss_g")
 writer_d_lr = SummaryWriter(logDir + "/lr_d")
 writer_g_lr = SummaryWriter(logDir + "/lr_g")
+step = 0  # global step value for logs
 
-# create a directory to save trained models created in this training run
-
-step = 0
+# set models to training mode
 gen.train()
 disc.train()
 print("ready to train...")
@@ -165,47 +150,43 @@ for epoch in range(Num_epochs):
         loss_gen = generator_loss(real, fake, mask, output)
         loss_gen.backward()
         opt_gen.step()
-        # gen_lr.step()
 
+    # display results at the end of each epoch
+    print(
+        f"|| Discriminator Loss: {loss_disc:.4f} \n"
+        f"|| Generator Loss: {loss_gen:.4f} \n"
+    )
+
+    with torch.no_grad():
         # plot loss functions - not directly useful but can be used to illustrate a point about evaluating GANs
         writer_d_loss.add_scalar('Discriminator Loss', loss_disc, global_step=step)
         writer_g_loss.add_scalar('Generator Loss', loss_gen, global_step=step)
-        # plot learning rates
-        # writer_d_lr.add_scalar('Discriminator Learning Rate', disc_lr.get_last_lr()[0], global_step=step)
-        # writer_g_lr.add_scalar('Generator Learning Rate', gen_lr.get_last_lr()[0], global_step=step)
+        # pick 16 examples
+        img_grid_real = torchvision.utils.make_grid(real[:16])
+        img_grid_fake = torchvision.utils.make_grid(fake[:16])
+        img_grid_raw = torchvision.utils.make_grid(raw[:16])
+        writer_real.add_image("Real", img_grid_real, global_step=step)
+        writer_fake_masked.add_image("Fake Masked", img_grid_fake, global_step=step)
+        writer_fake_raw.add_image("Fake Raw", img_grid_raw, global_step=step)
+    step += 1
 
-        # display results at specified intervals
-        if batch_idx % 1 == 0:
-            print(
-                f"---------------------------------------------- \n"
-                f"-> Batch [{batch_idx}/{len(trainingLoader)}]\n"
-                f"|| Discriminator Loss: {loss_disc:.4f} \n"
-                # f"|| DLR: {disc_lr.get_last_lr()} \n"
-                f"|| Generator Loss: {loss_gen:.4f} \n"
-                #  f"|| GLR: {gen_lr.get_last_lr()}"
-            )
+    # save model at the end of each epoch
+    fileName = "epoch_" + str(epoch) + '.pth'
+    checkpoint = {'G': gen,
+                  'D': disc,
+                  'G_state': gen.state_dict(),
+                  'D_state': disc.state_dict(),
+                  'Optim_G': opt_gen.state_dict(),
+                  'Optim_D': opt_disc.state_dict()}
+    SaveModel(checkpoint, modelDir, fileName)
+    print(f"Models for epoch {epoch} saved")
 
-            with torch.no_grad():
-                # pick up to 16 examples
-                img_grid_real = torchvision.utils.make_grid(real[:16])
-                img_grid_fake = torchvision.utils.make_grid(fake[:16])
-                img_grid_raw = torchvision.utils.make_grid(raw[:16])
-                writer_real.add_image("Real", img_grid_real, global_step=step)
-                writer_fake_masked.add_image("Fake Masked", img_grid_fake, global_step=step)
-                writer_fake_raw.add_image("Fake Raw", img_grid_raw, global_step=step)
 
-        step += 1
-
-        # save model at specified epochs
-    if epoch % 1 == 0:
-        fileName = "epoch_" + str(epoch) + '.pth'
-
-        checkpoint = {'G': gen,
-                      'D': disc,
-                      'G_state': gen.state_dict(),
-                      'D_state': disc.state_dict(),
-                      'Optim_G': opt_gen.state_dict(),
-                      'Optim_D': opt_disc.state_dict()}
-
-        SaveModel(checkpoint, modelDir, fileName)
-        print(f"Models for epoch {epoch} saved")
+# save the final iteration of the model
+final = {'G': gen,
+         'D': disc,
+         'G_state': gen.state_dict(),
+         'D_state': disc.state_dict(),
+         'Optim_G': opt_gen.state_dict(),
+         'Optim_D': opt_disc.state_dict()}
+torch.save(final, "model_v1.pth")
