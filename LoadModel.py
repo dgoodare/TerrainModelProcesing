@@ -1,3 +1,6 @@
+import os
+import random
+
 import torch
 import torch.optim as optim
 import torchvision
@@ -70,7 +73,7 @@ def Load(file, mode=''):
     if mode == 'Train':
         Train(gen, disc, opt_gen, opt_disc)
     elif mode == 'Eval':
-        Evaluate(gen)
+        Generate(gen, '', 100)
     else:
         print(f"{mode} is not a valid mode")
 
@@ -205,12 +208,29 @@ def Train(gen, disc, opt_gen, opt_disc):
             step += 1
 
 
-def Evaluate(model):
-    gen_input = torch.load('outputSlices/m1331540878le_18.pt')
+def Generate(model, outputDir, numSamples, maskDir='Evaluation/outputMasks', inputDir='Evaluation/outputSlices'):
     model.eval()
+    masks = os.listdir(maskDir)
+    counter = 0
 
-    with torch.no_grad():
-        output = model(gen_input)
+    for file in os.listdir(inputDir):
+        # select a random mask to apply to the sample
+        idx = random.randrange(len(masks))
+        mask = torch.load(masks[idx])
+
+        # load sample
+        sample = torch.load(file)
+
+        with torch.no_grad():
+            # apply in-filling model
+            output = model(sample, mask)
+            # save output to file
+            path = outputDir + '/' + str(counter) + '_sample.pt'
+            torch.save(output, path)
+
+        counter += 1
+        if counter == numSamples:
+            break
 
 
 Load('models/27-03-2023_20-37/epoch_9.pth')

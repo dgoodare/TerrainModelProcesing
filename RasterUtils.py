@@ -46,10 +46,3 @@ def ViewPDS(filePath):
     struc.info()
     pds4_tools.view(filePath)
 
-
-rawDEM = 'LROLRC_0042A/lrolrc_0042a/data/esm4/2019355/nac/m1331540878le.xml'
-generatedDEM = 'gdal_out.xml'
-
-SaveDEM('outputSlices/m1331540878le_54.pt')
-
-ViewPDS(generatedDEM)
