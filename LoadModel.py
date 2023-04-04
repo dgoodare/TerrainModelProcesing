@@ -208,8 +208,7 @@ def Train(gen, disc, opt_gen, opt_disc):
             step += 1
 
 
-def Generate(model, outputDir, numSamples, maskDir='outputMasks', inputDir='outputSlices'):
-    gen_input = torch.load('outputSlices/m1331540878le_18.pt')
+def Generate(model, outputDir, numSamples, maskDir='Evaluation/outputMasks', inputDir='Evaluation/outputSlices'):
     model.eval()
     masks = os.listdir(maskDir)
     counter = 0
