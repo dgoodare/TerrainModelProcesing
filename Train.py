@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
-import DatasetUtils
+# import DatasetUtils
 from FileManager import CleanLogs, SaveModel, CreateModelDir
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
@@ -45,10 +45,10 @@ def generator_loss(r, f, m, d):
 # Define Hyper-parameters
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Batch_size = 16
-Img_Size = DatasetUtils.img_size
+Img_Size = 64  # DatasetUtils.img_size
 Img_channels = 1
 Z_dim = 100
-Num_epochs = 10
+Num_epochs = 1
 Features_disc = 64
 Features_gen = 64
 Disc_iters = 5
@@ -67,7 +67,7 @@ transforms = transforms.Compose(
 
 # load the dataset
 # DatasetUtils.Create()
-DatasetUtils.Clean(batchSize=Batch_size)
+# DatasetUtils.Clean(batchSize=Batch_size)
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
 print("Dataset loaded...")
@@ -150,9 +150,16 @@ for epoch in range(Num_epochs):
         loss_gen = generator_loss(real, fake, mask, output)
         loss_gen.backward()
         opt_gen.step()
+        print(
+            f"{batch_idx}/{len(trainingLoader)} \n"
+            f"|| Discriminator Loss: {loss_disc:.4f} \n"
+            f"|| Generator Loss: {loss_gen:.4f} \n"
+
+        )
 
     # display results at the end of each epoch
     print(
+        "---------------------------------------- \n"
         f"|| Discriminator Loss: {loss_disc:.4f} \n"
         f"|| Generator Loss: {loss_gen:.4f} \n"
     )
