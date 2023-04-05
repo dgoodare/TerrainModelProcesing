@@ -1,13 +1,13 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from skimage.io import imread, imshow
-from skimage import filters, feature
+# from skimage import filters, feature
 from skimage.color import rgb2gray
 import os
 import torch
 import random
-from torchmetrics.image.fid import FrechetInceptionDistance
+# from torchmetrics.image.fid import FrechetInceptionDistance
 
 
 def DetectEdges(directory):

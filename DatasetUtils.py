@@ -1,12 +1,12 @@
 import torch
 import numpy as np
-from skimage.draw import disk, ellipse, polygon
+# from skimage.draw import disk, ellipse, polygon
 import os
 import csv
 import time
-from osgeo import gdal
+# from osgeo import gdal
 import sys
-import pandas as pd
+# import pandas as pd
 
 img_size = 64
 
@@ -404,3 +404,4 @@ def Clean(batchSize):
         lookUp = lookUp.iloc[:diff]
         print(f"Dataset trimmed to fit with a batch size of {batchSize}")
         lookUp.to_csv(filePath, index=False)
+

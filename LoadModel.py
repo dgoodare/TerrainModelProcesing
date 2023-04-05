@@ -231,6 +231,3 @@ def Generate(model, outputDir, numSamples, maskDir='Evaluation/outputMasks', inp
         counter += 1
         if counter == numSamples:
             break
-
-
-Load('models/27-03-2023_20-37/epoch_9.pth')
