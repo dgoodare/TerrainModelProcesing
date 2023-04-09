@@ -73,7 +73,9 @@ def Load(file, mode=''):
     if mode == 'Train':
         Train(gen, disc, opt_gen, opt_disc)
     elif mode == 'Eval':
-        Generate(gen, '', 100)
+        path = 'model_v1_test1'
+        os.mkdir(path)
+        Generate(model=gen, outputDir=path, numSamples=20, )
     else:
         print(f"{mode} is not a valid mode")
 
@@ -209,6 +211,7 @@ def Train(gen, disc, opt_gen, opt_disc):
 
 
 def Generate(model, outputDir, numSamples, maskDir='Evaluation/outputMasks', inputDir='Evaluation/outputSlices'):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.eval()
     masks = os.listdir(maskDir)
     counter = 0
@@ -216,18 +219,24 @@ def Generate(model, outputDir, numSamples, maskDir='Evaluation/outputMasks', inp
     for file in os.listdir(inputDir):
         # select a random mask to apply to the sample
         idx = random.randrange(len(masks))
-        mask = torch.load(masks[idx])
+        mask = torch.load(maskDir + '/' + masks[idx]).to(device)
 
         # load sample
-        sample = torch.load(file)
+        sample = torch.load(inputDir + '/' + file).to(device)
 
         with torch.no_grad():
             # apply in-filling model
-            output = model(sample, mask)
+            noise = torch.rand((Batch_size, Z_dim, 1, 1)).to(device)
+            rawOutput, fakeOutput = model(x=noise, m=mask, r=sample)
             # save output to file
-            path = outputDir + '/' + str(counter) + '_sample.pt'
-            torch.save(output, path)
+            fakePath = outputDir + '/' + str(counter) + '_fake.pt'
+            realPath = outputDir + '/' + str(counter) + '_real.pt'
+            torch.save(fakeOutput, fakePath)
+            torch.save(sample, realPath)
 
         counter += 1
         if counter == numSamples:
             break
+
+
+Load('model_v1.pth', 'Eval')
