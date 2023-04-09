@@ -6,7 +6,7 @@ import csv
 import time
 # from osgeo import gdal
 import sys
-# import pandas as pd
+import pandas as pd
 
 img_size = 64
 
@@ -40,7 +40,7 @@ def slice_DEM(arr, size, in_file, outDir):
         idx += 1
 
         # set the maximum number of slices to 20,000
-        if idx > 20000:
+        if idx > 7500:
             break
 
 
@@ -373,7 +373,7 @@ def Create():
     driver = gdal.GetDriverByName('PDS4')
     driver.Register()
 
-    file_name = 'LROLRC_0042A/lrolrc_0042a/data/esm4/2019355/nac/m1331540878le.img'
+    file_name = 'Raw_DEMs/lrolrc_0042a/data/esm4/2019355/nac/m1331540878le.img'
     data = gdal.Open(file_name)
 
     if data is None:

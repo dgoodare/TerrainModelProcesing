@@ -238,5 +238,3 @@ def Generate(model, outputDir, numSamples, maskDir='Evaluation/outputMasks', inp
         if counter == numSamples:
             break
 
-
-Load('model_v1.pth', 'Eval')

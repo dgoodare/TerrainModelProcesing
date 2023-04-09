@@ -105,5 +105,3 @@ def CalculateRMSE(realDir, fakeDir):
     return torch.mean(rmse)
 
 
-DetectEdges("model_v1_test1")
-
