@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
-# import DatasetUtils
+import DatasetUtils
 from FileManager import CleanLogs, SaveModel, CreateModelDir
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
@@ -66,8 +66,8 @@ transforms = transforms.Compose(
 )
 
 # load the dataset
-# DatasetUtils.Create()
-# DatasetUtils.Clean(batchSize=Batch_size)
+DatasetUtils.Create()
+DatasetUtils.Clean(batchSize=Batch_size)
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
 print("Dataset loaded...")
@@ -156,6 +156,19 @@ for epoch in range(Num_epochs):
             f"|| Generator Loss: {loss_gen:.4f} \n"
 
         )
+        if batch_idx % 10 == 0:
+            with torch.no_grad():
+                # plot loss functions - not directly useful but can be used to illustrate a point about evaluating GANs
+                writer_d_loss.add_scalar('Discriminator Loss', loss_disc, global_step=step)
+                writer_g_loss.add_scalar('Generator Loss', loss_gen, global_step=step)
+                # pick 16 examples
+                img_grid_real = torchvision.utils.make_grid(real[:16])
+                img_grid_fake = torchvision.utils.make_grid(fake[:16])
+                img_grid_raw = torchvision.utils.make_grid(raw[:16])
+                writer_real.add_image("Real", img_grid_real, global_step=step)
+                writer_fake_masked.add_image("Fake Masked", img_grid_fake, global_step=step)
+                writer_fake_raw.add_image("Fake Raw", img_grid_raw, global_step=step)
+            step += 1
 
     # display results at the end of each epoch
     print(
@@ -163,19 +176,6 @@ for epoch in range(Num_epochs):
         f"|| Discriminator Loss: {loss_disc:.4f} \n"
         f"|| Generator Loss: {loss_gen:.4f} \n"
     )
-
-    with torch.no_grad():
-        # plot loss functions - not directly useful but can be used to illustrate a point about evaluating GANs
-        writer_d_loss.add_scalar('Discriminator Loss', loss_disc, global_step=step)
-        writer_g_loss.add_scalar('Generator Loss', loss_gen, global_step=step)
-        # pick 16 examples
-        img_grid_real = torchvision.utils.make_grid(real[:16])
-        img_grid_fake = torchvision.utils.make_grid(fake[:16])
-        img_grid_raw = torchvision.utils.make_grid(raw[:16])
-        writer_real.add_image("Real", img_grid_real, global_step=step)
-        writer_fake_masked.add_image("Fake Masked", img_grid_fake, global_step=step)
-        writer_fake_raw.add_image("Fake Raw", img_grid_raw, global_step=step)
-    step += 1
 
     # save model at the end of each epoch
     fileName = "epoch_" + str(epoch) + '.pth'
