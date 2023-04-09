@@ -1,13 +1,13 @@
 import pandas as pd
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from skimage.io import imread, imshow
-# from skimage import filters, feature
+from skimage import filters, feature
 from skimage.color import rgb2gray
 import os
 import torch
 import random
-# from torchmetrics.image.fid import FrechetInceptionDistance
+from torchmetrics.image.fid import FrechetInceptionDistance
 
 
 def DetectEdges(directory):
@@ -21,10 +21,12 @@ def DetectEdges(directory):
     dirLength = len(os.listdir(directory))
     rand_idx = random.randrange(dirLength - num_images)
 
-    for file in os.listdir(directory)[rand_idx:rand_idx+num_images]:
-        tensor = torch.load(directory + "/" + file)
+    for file in os.listdir(directory):  # [rand_idx:rand_idx+num_images]:
+        tensor = torch.load(directory + "/" + file)[0].cpu()
+
         tensor = torch.squeeze(tensor)
         img = torch.Tensor.numpy(tensor)
+        print(img.shape)
 
         # prewitt edge detection
         prewitt = filters.prewitt(img)
@@ -103,5 +105,5 @@ def CalculateRMSE(realDir, fakeDir):
     return torch.mean(rmse)
 
 
-DetectEdges("outputSlices")
+DetectEdges("model_v1_test1")
 

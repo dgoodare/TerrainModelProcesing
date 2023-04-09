@@ -7,16 +7,16 @@ import pds4_tools
 
 def SaveDEM(filePath):
     """Save a tensor as a PDS4 file"""
-    tensor = torch.load(filePath)
+    tensor = torch.load(filePath)[0].cpu()
     tensor = torch.squeeze(tensor)
     array = torch.Tensor.numpy(tensor)
 
     # save as image for reference
-    Image.fromarray(np.uint8(array)).save('gdal_out.png', 'PNG')
+    Image.fromarray(np.uint8(array)).save('gdal_out_real.png', 'PNG')
 
     d_type = gdal.GDT_Float32
     driver = gdal.GetDriverByName("PDS4")
-    raster = driver.Create('gdal_out.xml', array.shape[0], array.shape[1], 1, d_type)
+    raster = driver.Create('gdal_out_real.xml', array.shape[0], array.shape[1], 1, d_type)
     band = raster.GetRasterBand(1)
     band.WriteArray(array)
 
@@ -34,7 +34,7 @@ def GetGeoRefData():
     """Get the transformation and projection information from the raw DEM file"""
     driver = gdal.GetDriverByName('PDS4')
     driver.Register()
-    file_name = 'LROLRC_0042A/lrolrc_0042a/data/esm4/2019355/nac/m1331540878le.xml'
+    file_name = 'Raw_DEMs/lrolrc_0042a/data/esm4/2019355/nac/m1331540878le.xml'
     data = gdal.Open(file_name)
 
     return data.GetGeoTransform(), data.GetProjectionRef()
@@ -47,4 +47,4 @@ def ViewPDS(filePath):
     pds4_tools.view(filePath)
 
 
-
+ViewPDS('gdal_out_fake.xml')
