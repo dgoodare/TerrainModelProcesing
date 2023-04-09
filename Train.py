@@ -66,8 +66,8 @@ transforms = transforms.Compose(
 )
 
 # load the dataset
-DatasetUtils.Create()
-DatasetUtils.Clean(batchSize=Batch_size)
+# DatasetUtils.Create()
+# DatasetUtils.Clean(batchSize=Batch_size)
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
 print("Dataset loaded...")
@@ -196,4 +196,4 @@ final = {'G': gen,
          'D_state': disc.state_dict(),
          'Optim_G': opt_gen.state_dict(),
          'Optim_D': opt_disc.state_dict()}
-torch.save(final, "model_v1.pth")
+torch.save(final, "model_v2.pth")
