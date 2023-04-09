@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
-import DatasetUtils
+# import DatasetUtils
 from FileManager import CleanLogs, SaveModel, CreateModelDir
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
@@ -48,7 +48,7 @@ Batch_size = 16
 Img_Size = 64  # DatasetUtils.img_size
 Img_channels = 1
 Z_dim = 100
-Num_epochs = 1
+Num_epochs = 15
 Features_disc = 64
 Features_gen = 64
 Disc_iters = 5

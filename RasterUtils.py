@@ -46,5 +46,3 @@ def ViewPDS(filePath):
     struc.info()
     pds4_tools.view(filePath)
 
-
-ViewPDS('gdal_out_fake.xml')
