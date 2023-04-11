@@ -73,7 +73,7 @@ def Load(file, mode=''):
     if mode == 'Train':
         Train(gen, disc, opt_gen, opt_disc)
     elif mode == 'Eval':
-        path = 'model_v1_test1'
+        path = 'model_v2'
         os.mkdir(path)
         Generate(model=gen, outputDir=path, numSamples=20, )
     else:
@@ -238,3 +238,5 @@ def Generate(model, outputDir, numSamples, maskDir='Evaluation/outputMasks', inp
         if counter == numSamples:
             break
 
+
+Load('model_v2.pth', 'Eval')

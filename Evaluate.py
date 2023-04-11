@@ -18,15 +18,14 @@ def DetectEdges(directory):
     harrisList = []
     num_images = 5
     count = 0
-    dirLength = len(os.listdir(directory))
-    rand_idx = random.randrange(dirLength - num_images)
+    # dirLength = len(os.listdir(directory))
+    # rand_idx = random.randrange(dirLength - num_images)
 
     for file in os.listdir(directory):  # [rand_idx:rand_idx+num_images]:
-        tensor = torch.load(directory + "/" + file)[0].cpu()
+        tensor = torch.load(directory + "/" + file).cpu()
 
         tensor = torch.squeeze(tensor)
         img = torch.Tensor.numpy(tensor)
-        print(img.shape)
 
         # prewitt edge detection
         prewitt = filters.prewitt(img)
@@ -104,4 +103,6 @@ def CalculateRMSE(realDir, fakeDir):
 
     return torch.mean(rmse)
 
+
+DetectEdges('outputWeights')
 

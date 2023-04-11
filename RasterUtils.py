@@ -5,7 +5,7 @@ from PIL import Image
 import pds4_tools
 
 
-def SaveDEM(filePath):
+def SaveDEM(filePath, newFile):
     """Save a tensor as a PDS4 file"""
     tensor = torch.load(filePath)[0].cpu()
     tensor = torch.squeeze(tensor)
@@ -16,7 +16,7 @@ def SaveDEM(filePath):
 
     d_type = gdal.GDT_Float32
     driver = gdal.GetDriverByName("PDS4")
-    raster = driver.Create('gdal_out_real.xml', array.shape[0], array.shape[1], 1, d_type)
+    raster = driver.Create(newFile, array.shape[0], array.shape[1], 1, d_type)
     band = raster.GetRasterBand(1)
     band.WriteArray(array)
 
@@ -45,4 +45,7 @@ def ViewPDS(filePath):
     struc = pds4_tools.read(filePath)
     struc.info()
     pds4_tools.view(filePath)
+
+
+ViewPDS('model_v2/fakeDEM.xml')
 

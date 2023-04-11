@@ -1,12 +1,13 @@
 import torch
 import numpy as np
-# from skimage.draw import disk, ellipse, polygon
+from skimage.draw import disk, ellipse, polygon
 import os
 import csv
 import time
-# from osgeo import gdal
+from osgeo import gdal
 import sys
 import pandas as pd
+from itertools import product
 
 img_size = 64
 
@@ -29,19 +30,50 @@ def slice_DEM(arr, size, in_file, outDir):
 
     idx = 1
     for x in grid:
-        filename = outDir + '/' + in_file + '_' + str(idx) + '.pt'
+        t_filename = outDir + '/' + in_file + '_' + str(idx) + '.pt'
         try:
             t = torch.tensor(x)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            torch.save(t, t_filename)
 
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
         idx += 1
 
         # set the maximum number of slices to 20,000
-        if idx > 7500:
+        if idx > 10000:
             break
+
+
+def getNeighbours(cell):
+    size = 64
+    for c in product(*(range(n-1, n+2) for n in cell)):
+        if c != cell and all(0 <= n < size for n in c):
+            yield c
+
+
+def getWeight(m, i, j):
+    neighbours = list(getNeighbours((i, j)))
+    num_ns = len(neighbours)
+    weight = 0
+
+    for x in neighbours:
+        weight += (1 - m[x[0], x[1]])/num_ns
+
+    return weight
+
+
+def WeightMatrix(m):
+    m = torch.squeeze(m).to(torch.float32)
+
+    w = torch.empty(m.shape[0], m.shape[1])
+    for i in range(m.shape[0]):
+        for j in range(m.shape[1]):
+            if m[i, j] == 0:
+                w[i, j] = 0
+            else:
+                w[i, j] = getWeight(m, i, j)
+    return w
 
 
 def CreateSquareMask(holeSize):
@@ -209,88 +241,115 @@ def CreateBottomRightStripMask():
     return mask
 
 
-def createMasks(shapeList, outDir):
+def createMasks(shapeList, outDir, wDir):
     if shapeList[0]:
         mask = CreateTopLeftEdgeMask()
-        filename = outDir + '/' + "tl_edge.pt"
+        t_filename = outDir + '/' + "tl_edge.pt"
+        w_filename = wDir + '/' + "tl_edge_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
     if shapeList[1]:
         mask = CreateTopRightEdgeMask()
-        filename = outDir + '/' + "tr_edge.pt"
+        t_filename = outDir + '/' + "tr_edge.pt"
+        w_filename = wDir + '/' + "tr_edge_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
     if shapeList[2]:
         mask = CreateTopLeftStripMask()
-        filename = outDir + '/' + "tl_strip.pt"
+        t_filename = outDir + '/' + "tl_strip.pt"
+        w_filename = wDir + '/' + "tl_strip_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
     if shapeList[3]:
         mask = CreateBottomRightStripMask()
-        filename = outDir + '/' + "br_edge.pt"
+        t_filename = outDir + '/' + "br_edge.pt"
+        w_filename = wDir + '/' + "br_edge_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
     if shapeList[4]:
         mask = CreateSquareMask(int(img_size/4))
-        filename = outDir + '/' + "sqr.pt"
+        t_filename = outDir + '/' + "sqr.pt"
+        w_filename = wDir + '/' + "sqr_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
     if shapeList[5]:
         mask = CreateStripMask(int(img_size/8))
-        filename = outDir + '/' + "c_strip.pt"
+        t_filename = outDir + '/' + "c_strip.pt"
+        w_filename = wDir + '/' + "c_strip_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
     if shapeList[6]:
         mask = CreateCircleMask(int(img_size/4))
-        filename = outDir + '/' + "circle.pt"
+        t_filename = outDir + '/' + "circle.pt"
+        w_filename = wDir + '/' + "circle_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
     if shapeList[7]:
         mask = CreateEllipseMask(int(img_size/3), int(img_size/6))
-        filename = outDir + '/' + "ellipse.pt"
+        t_filename = outDir + '/' + "ellipse.pt"
+        w_filename = wDir + '/' + "ellipse_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
     if shapeList[8]:
         mask = CreatePolygonMask()
-        filename = outDir + '/' + "polygon.pt"
+        t_filename = outDir + '/' + "polygon.pt"
+        w_filename = wDir + '/' + "polygon_w.pt"
         try:
             t = torch.from_numpy(mask)
             t = torch.unsqueeze(t, 0)
-            torch.save(t, filename)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
         except OSError:
-            print(f"{filename} could not be saved, or the file only contains partial data")
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
 
 
 def createRows(shapesList, inDir):
@@ -298,31 +357,31 @@ def createRows(shapesList, inDir):
 
     for file in os.listdir(inDir):
         if shapesList[0]:
-            row = file, "tl_edge.pt"
+            row = file, "tl_edge.pt", "tl_edge_w.pt"
             outputList.append(row)
         if shapesList[1]:
-            row = file, "tr_edge.pt"
+            row = file, "tr_edge.pt", "tr_edge_w.pt"
             outputList.append(row)
         if shapesList[2]:
-            row = file, "tl_strip.pt"
+            row = file, "tl_strip.pt", "tl_strip_w.pt"
             outputList.append(row)
         if shapesList[3]:
-            row = file, "br_edge.pt"
+            row = file, "br_edge.pt", "br_edge_w.pt"
             outputList.append(row)
         if shapesList[4]:
-            row = file, "sqr.pt"
+            row = file, "sqr.pt", "sqr_w.pt"
             outputList.append(row)
         if shapesList[5]:
-            row = file, "c_strip.pt"
+            row = file, "c_strip.pt", "c_strip_w.pt"
             outputList.append(row)
         if shapesList[6]:
-            row = file, "circle.pt"
+            row = file, "circle.pt", "circle_w.pt"
             outputList.append(row)
         if shapesList[7]:
-            row = file, "ellipse.pt"
+            row = file, "ellipse.pt", "ellipse_w.pt"
             outputList.append(row)
         if shapesList[8]:
-            row = file, "polygon.pt"
+            row = file, "polygon.pt", "polygon_w.pt"
             outputList.append(row)
 
     return outputList
@@ -342,7 +401,7 @@ def createLookUp():
         False  # polygon
     ]
 
-    createMasks(shapes, 'outputMasks')
+    createMasks(shapes, 'outputMasks', 'outputWeights')
     print("masks created...")
     numShapes = 0
     for shape in shapes:
@@ -351,7 +410,7 @@ def createLookUp():
 
     csvRows = createRows(shapes, 'outputSlices')
     print("rows created")
-    # csv filename
+
     csvFile = 'LookUp/lookUpTable.csv'
 
     try:
@@ -404,4 +463,3 @@ def Clean(batchSize):
         lookUp = lookUp.iloc[:diff]
         print(f"Dataset trimmed to fit with a batch size of {batchSize}")
         lookUp.to_csv(filePath, index=False)
-
