@@ -9,7 +9,7 @@ import sys
 import pandas as pd
 from itertools import product
 
-img_size = 64
+img_size = 512
 
 
 def crop_to_size(arr, x):
@@ -40,9 +40,8 @@ def slice_DEM(arr, size, in_file, outDir):
             print(f"{t_filename} could not be saved, or the file only contains partial data")
         idx += 1
 
-        # set the maximum number of slices to 20,000
-        if idx > 10000:
-            break
+        if idx > 20:
+            return
 
 
 def getNeighbours(cell):
@@ -70,7 +69,7 @@ def WeightMatrix(m):
     for i in range(m.shape[0]):
         for j in range(m.shape[1]):
             if m[i, j] == 0:
-                w[i, j] = 0
+                w[i, j] = 0.5
             else:
                 w[i, j] = getWeight(m, i, j)
     return w
@@ -159,8 +158,8 @@ def CreateTopLeftEdgeMask():
     mask = np.ones([img_size, img_size], dtype=int)
     # define coordinates for the vertices of the polygon
     a = [0, 0]  # top left corner of the image
-    b = [int(2*img_size/10), 0]  # top edge
-    c = [0, int(3*img_size/10)]  # left edge
+    b = [int(4*img_size/10), 0]  # top edge
+    c = [0, int(6*img_size/10)]  # left edge
     # define row coordinates
     rows = np.array([a[1], b[1], c[1]])
     # define column coordinates
@@ -179,8 +178,8 @@ def CreateTopRightEdgeMask():
     mask = np.ones([img_size, img_size], dtype=int)
     # define coordinates for the vertices of the polygon
     a = [img_size-1, 0]  # top left corner of the image
-    b = [int(8*img_size/10), 0]  # top edge
-    c = [img_size-1, int(1*img_size/10)]  # left edge
+    b = [int(6*img_size/10), 0]  # top edge
+    c = [img_size-1, int(4*img_size/10)]  # left edge
     # define row coordinates
     rows = np.array([a[1], b[1], c[1]])
     # define column coordinates
@@ -199,10 +198,10 @@ def CreateTopLeftStripMask():
     mask = np.ones([img_size, img_size], dtype=int)
 
     # define coordinates for the vertices of the polygon
-    a = [0, int(img_size * (2.5/10))]
-    b = [0, int(img_size * (3/10))]
-    c = [int(img_size * (3/10)), 0]
-    d = [int(img_size * (2.5/10)), 0]
+    a = [0, int(img_size * (2/10))]
+    b = [0, int(img_size * (4/10))]
+    c = [int(img_size * (4/10)), 0]
+    d = [int(img_size * (2/10)), 0]
     # define column coordinates
     cols = np.array([a[0], b[0], c[0], d[0]])
     # define row coordinates
@@ -224,9 +223,9 @@ def CreateBottomRightStripMask():
 
     # define coordinates for the vertices of the polygon
     a = [img_size-1, int(img_size * (2/10))]
-    b = [img_size-1, int(img_size * (3/10))]
-    c = [int(img_size * (7/10)), img_size-1]
-    d = [int(img_size * (6.5/10)), img_size-1]
+    b = [img_size-1, int(img_size * (6/10))]
+    c = [int(img_size * (8/10)), img_size-1]
+    d = [int(img_size * (6/10)), img_size-1]
     # define column coordinates
     cols = np.array([a[0], b[0], c[0], d[0]])
     # define row coordinates
@@ -238,6 +237,54 @@ def CreateBottomRightStripMask():
     # fill mask
     mask[r, c] = 0
 
+    return mask
+
+
+def CreateLeftStripMask(holeWidth):
+    """ Adds a horizontal strip mask to an image
+        Returns the resulting image and the corresponding mask as a tuple
+        """
+    # create a matrix with the same size as the input image and fill it with 1s
+    mask = np.ones([img_size, img_size], dtype=int)
+    # define the mask boundaries
+    y1 = int(0)
+    y2 = int(holeWidth)
+    x1 = int(0)
+    x2 = int(img_size)
+    # fill the mask area with 0s
+    mask[x1:x2, y1:y2] = np.zeros([img_size, holeWidth], dtype=int)
+    return mask
+
+
+def CreateHorizontalStripMask(holeWidth):
+    """ Adds a horizontal strip mask to an image
+        Returns the resulting image and the corresponding mask as a tuple
+        """
+    # create a matrix with the same size as the input image and fill it with 1s
+    mask = np.ones([img_size, img_size], dtype=int)
+    # define the mask boundaries
+    x1 = int(img_size/2 - holeWidth/2)
+    x2 = int(img_size/2 + holeWidth/2)
+    y1 = int(0)
+    y2 = int(img_size)
+    # fill the mask area with 0s
+    mask[x1:x2, y1:y2] = np.zeros([holeWidth, img_size], dtype=int)
+    return mask
+
+
+def CreateTopStripMask(holeWidth):
+    """ Adds a horizontal strip mask to an image
+        Returns the resulting image and the corresponding mask as a tuple
+        """
+    # create a matrix with the same size as the input image and fill it with 1s
+    mask = np.ones([img_size, img_size], dtype=int)
+    # define the mask boundaries
+    x1 = int(0)
+    x2 = int(holeWidth)
+    y1 = int(0)
+    y2 = int(img_size)
+    # fill the mask area with 0s
+    mask[x1:x2, y1:y2] = np.zeros([holeWidth, img_size], dtype=int)
     return mask
 
 
@@ -350,6 +397,42 @@ def createMasks(shapeList, outDir, wDir):
             torch.save(w, w_filename)
         except OSError:
             print(f"{t_filename} could not be saved, or the file only contains partial data")
+    if shapeList[9]:
+        mask = CreateLeftStripMask(int(img_size/6))
+        t_filename = outDir + '/' + "l_strip.pt"
+        w_filename = wDir + '/' + "l_strip_w.pt"
+        try:
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
+        except OSError:
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
+    if shapeList[10]:
+        mask = CreateHorizontalStripMask(int(img_size/6))
+        t_filename = outDir + '/' + "h_strip.pt"
+        w_filename = wDir + '/' + "h_strip_w.pt"
+        try:
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
+        except OSError:
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
+    if shapeList[11]:
+        mask = CreateTopStripMask(int(img_size/7))
+        t_filename = outDir + '/' + "t_strip.pt"
+        w_filename = wDir + '/' + "t_strip_w.pt"
+        try:
+            t = torch.from_numpy(mask)
+            t = torch.unsqueeze(t, 0)
+            w = WeightMatrix(t)
+            torch.save(t, t_filename)
+            torch.save(w, w_filename)
+        except OSError:
+            print(f"{t_filename} could not be saved, or the file only contains partial data")
 
 
 def createRows(shapesList, inDir):
@@ -383,6 +466,15 @@ def createRows(shapesList, inDir):
         if shapesList[8]:
             row = file, "polygon.pt", "polygon_w.pt"
             outputList.append(row)
+        if shapesList[9]:
+            row = file, "l_strip.pt", "l_strip_w.pt"
+            outputList.append(row)
+        if shapesList[10]:
+            row = file, "h_strip.pt", "h_strip_w.pt"
+            outputList.append(row)
+        if shapesList[11]:
+            row = file, "t_strip.pt", "t_strip_w.pt"
+            outputList.append(row)
 
     return outputList
 
@@ -398,7 +490,10 @@ def createLookUp():
         True,  # centre strip
         False,  # circle
         False,  # ellipse
-        False  # polygon
+        False,  # polygon
+        True,  # l strip
+        True, # h strip
+        True,  # t strip
     ]
 
     createMasks(shapes, 'outputMasks', 'outputWeights')
@@ -447,8 +542,8 @@ def Create():
     h, w = np_array.shape
     trimmed = np_array[0:h, 50:(w-50)]
 
-    slice_DEM(trimmed, img_size, 'm1331540878le', 'outputSlices')
-    createLookUp()
+    slice_DEM(trimmed, img_size, 'm1331540878le', 'exampleDEMs')
+    # createLookUp()
     print(f"Dataset created in {time.time()-startTime:.4f} seconds")
 
 

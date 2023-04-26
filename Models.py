@@ -72,18 +72,12 @@ class Generator(nn.Module):
                 bias=False
             ),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
+            nn.ReLU(True),
         )
 
-    def forward(self, x, m, r):
+    def forward(self, x):
         raw = self.layers(x)
-        # apply reversed mask to generated data
-        fakePatch = torch.multiply(raw, (1-m))
-        # apply mask to ground truth
-        maskedDEM = torch.multiply(r, m)
-        fake = torch.add(fakePatch, maskedDEM)
-
-        return fake, raw
+        return raw
 
 
 def initialise_weights(model):
@@ -91,7 +85,7 @@ def initialise_weights(model):
     Initialises the weights for a nn model
     """
     for module in model.modules():
-        if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d, nn.BatchNorm2d)):  # TODO: check if these are correct
+        if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d, nn.BatchNorm2d)):
             nn.init.normal_(module.weight.data, 0.0, 0.02)
 
 
@@ -111,6 +105,3 @@ def test():
     initialise_weights(disc)
     assert disc(x).shape == (N, 1, 1, 1)
     print("Discriminator created...")
-
-
-# test()

@@ -7,12 +7,12 @@ import pds4_tools
 
 def SaveDEM(filePath, newFile):
     """Save a tensor as a PDS4 file"""
-    tensor = torch.load(filePath)[0].cpu()
+    tensor = torch.load(filePath).cpu()
     tensor = torch.squeeze(tensor)
     array = torch.Tensor.numpy(tensor)
 
     # save as image for reference
-    Image.fromarray(np.uint8(array)).save('gdal_out_real.png', 'PNG')
+    # Image.fromarray(np.uint8(array)).save('models/candidate_4/DEMs/0_fake_c_strip.png', 'PNG')
 
     d_type = gdal.GDT_Float32
     driver = gdal.GetDriverByName("PDS4")
@@ -45,7 +45,3 @@ def ViewPDS(filePath):
     struc = pds4_tools.read(filePath)
     struc.info()
     pds4_tools.view(filePath)
-
-
-ViewPDS('model_v2/fakeDEM.xml')
-
