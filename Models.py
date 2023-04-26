@@ -54,18 +54,16 @@ class Generator(nn.Module):
 
         self.layers = nn.Sequential(
             self.block(Z, features * 16, 4, 1, 0),
-            self.block(features * 16, features * 8, 4, stride=1, padding=1),
-            self.block(features * 8, features * 4, 4, stride=1, padding=1),
-            self.block(features * 4, features * 2, 4, stride=1, padding=1),
-            nn.Upsample(size=(img_size, img_size), mode='nearest'),
-            nn.Conv2d(features * 2, imgChannels, 5, 1, padding='same'),
+            self.block(features * 16, features * 8, 4, stride=2, padding=1),
+            self.block(features * 8, features * 4, 4, stride=2, padding=1),
+            self.block(features * 4, features * 2, 4, stride=2, padding=1),
+            nn.ConvTranspose2d(features * 2, imgChannels, kernel_size=4, stride=2, padding=1),
             nn.Tanh(),
         )
 
     def block(self, in_channels, out_channels, kernel_size, stride, padding):
         return nn.Sequential(
-            nn.Upsample(size=(img_size, img_size), mode='nearest'),
-            nn.Conv2d(
+            nn.ConvTranspose2d(
                 in_channels,
                 out_channels,
                 kernel_size,
@@ -74,18 +72,12 @@ class Generator(nn.Module):
                 bias=False
             ),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
+            nn.ReLU(True),
         )
 
-    def forward(self, x, m, r):
+    def forward(self, x):
         raw = self.layers(x)
-        # apply reversed mask to generated data
-        fakePatch = torch.multiply(raw, (1-m))
-        # apply mask to ground truth
-        maskedDEM = torch.multiply(r, m)
-        fake = torch.add(fakePatch, maskedDEM)
-
-        return raw, fake
+        return raw
 
 
 def initialise_weights(model):
@@ -93,7 +85,7 @@ def initialise_weights(model):
     Initialises the weights for a nn model
     """
     for module in model.modules():
-        if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d, nn.BatchNorm2d)):  # TODO: check if these are correct
+        if isinstance(module, (nn.Conv2d, nn.ConvTranspose2d, nn.BatchNorm2d)):
             nn.init.normal_(module.weight.data, 0.0, 0.02)
 
 
@@ -103,7 +95,7 @@ def test():
     z = torch.randn((N, z_dim, 1, 1))
     x = torch.randn((N, in_channels, H, W))
 
-    gen = Generator(z_dim, in_channels, 8)
+    gen = Generator(z_dim, in_channels, 64)
     initialise_weights(gen)
 
     assert gen(z).shape == (N, in_channels, H, W)
@@ -113,6 +105,3 @@ def test():
     initialise_weights(disc)
     assert disc(x).shape == (N, 1, 1, 1)
     print("Discriminator created...")
-
-
-# test()

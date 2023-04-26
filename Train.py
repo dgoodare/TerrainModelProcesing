@@ -1,12 +1,13 @@
 import torch
 import torch.optim as optim
 import torchvision
+from torchvision.models import vgg19, VGG19_Weights
 from torch.optim import lr_scheduler  # provides methods for adjusting the learning rate
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets, models, transforms
 
-# import DatasetUtils
+import DatasetUtils
 from FileManager import CleanLogs, SaveModel, CreateModelDir
 from DEMDataset import DEMDataset
 from Models import Discriminator, Generator
@@ -19,27 +20,22 @@ def reverse_mask(x):
 
 def discriminator_loss(x, y):
     """ Wasserstein loss function """
-    return -(torch.mean(x) - torch.mean(y))
+    return - torch.mean(x * y)
 
 
-def generator_loss(r, f, m, d):
+def generator_loss(r, f, m, w, d):
     # pixel-wise loss
-    diff = r - f
-    pxlLoss = torch.sqrt(torch.mean(diff*diff))
+    diff = m * (r - f)
+    pxlLoss = torch.mean(torch.abs(diff))
 
     # context loss
-    """
-    w = torch.zeros([Img_Size, Img_Size])  # weight matrix
-    for i, j in w:
-        if m[i, j] == 0:
-            w[i, j] = 0
-        else: """
+    ctxLoss = torch.mean(torch.abs(w * (f - r)))
 
     # perceptual loss
-    prcpLoss = torch.log(1 - torch.mean(d))
-    # print(f"pxl: {pxlLoss}, prcp: {prcpLoss}")
+    prcLoss = torch.log(1 - torch.mean(d))
+    print(f"pxl: {pxlLoss}, ctx: {ctxLoss} prc: {prcLoss}")
 
-    return pxlLoss + prcpLoss
+    return pxlLoss + ctxLoss + 0.1*prcLoss
 
 
 # Define Hyper-parameters
@@ -48,7 +44,7 @@ Batch_size = 16
 Img_Size = 64  # DatasetUtils.img_size
 Img_channels = 1
 Z_dim = 100
-Num_epochs = 15
+Num_epochs = 10
 Features_disc = 64
 Features_gen = 64
 Disc_iters = 5
@@ -58,6 +54,7 @@ beta2 = 0.999
 epsilon = 1e-08
 Learning_rate = 0.0002
 
+
 # transformations applied to datasets
 transforms = transforms.Compose(
     [
@@ -66,8 +63,8 @@ transforms = transforms.Compose(
 )
 
 # load the dataset
-# DatasetUtils.Create()
-# DatasetUtils.Clean(batchSize=Batch_size)
+DatasetUtils.Create()
+DatasetUtils.Clean(batchSize=Batch_size)
 dataset = DEMDataset('lookUpTable.csv', rootDir='LookUp', transform=transforms)
 Dataset_size = dataset.__len__()
 print("Dataset loaded...")
@@ -124,11 +121,12 @@ for epoch in range(Num_epochs):
         # retrieve ground truth and corresponding mask
         real = sample[0].to(device)
         mask = sample[1].to(device)
+        weightMatrix = sample[2].to(device)
 
         # train discriminator
         for _ in range(Disc_iters):
             noise = torch.rand((Batch_size, Z_dim, 1, 1)).to(device)
-            raw, fake = gen(x=noise, m=mask, r=real)
+            fake, raw = gen(x=noise, m=mask, r=real)
 
             # send real and fake DEMs to the discriminator
             disc_real = disc(real).reshape(-1)
@@ -138,16 +136,16 @@ for epoch in range(Num_epochs):
             disc.zero_grad()
             loss_disc.backward(retain_graph=True)
             opt_disc.step()
-            # disc_lr.step()
 
             for p in disc.parameters():
                 p.data.clamp_(-Weight_clip, Weight_clip)
 
         # train generator
-        gen.zero_grad()
+
         output = disc(fake).reshape(-1)
         # calculate loss
-        loss_gen = generator_loss(real, fake, mask, output)
+        loss_gen = generator_loss(real, fake, mask, weightMatrix, output)
+        gen.zero_grad()
         loss_gen.backward()
         opt_gen.step()
         print(
@@ -196,4 +194,4 @@ final = {'G': gen,
          'D_state': disc.state_dict(),
          'Optim_G': opt_gen.state_dict(),
          'Optim_D': opt_disc.state_dict()}
-torch.save(final, "model_v2.pth")
+# torch.save(final, "model_v2.pth")

@@ -5,18 +5,18 @@ from PIL import Image
 import pds4_tools
 
 
-def SaveDEM(filePath):
+def SaveDEM(filePath, newFile):
     """Save a tensor as a PDS4 file"""
-    tensor = torch.load(filePath)[0].cpu()
+    tensor = torch.load(filePath).cpu()
     tensor = torch.squeeze(tensor)
     array = torch.Tensor.numpy(tensor)
 
     # save as image for reference
-    Image.fromarray(np.uint8(array)).save('gdal_out_real.png', 'PNG')
+    # Image.fromarray(np.uint8(array)).save('models/candidate_4/DEMs/0_fake_c_strip.png', 'PNG')
 
     d_type = gdal.GDT_Float32
     driver = gdal.GetDriverByName("PDS4")
-    raster = driver.Create('gdal_out_real.xml', array.shape[0], array.shape[1], 1, d_type)
+    raster = driver.Create(newFile, array.shape[0], array.shape[1], 1, d_type)
     band = raster.GetRasterBand(1)
     band.WriteArray(array)
 
@@ -45,4 +45,3 @@ def ViewPDS(filePath):
     struc = pds4_tools.read(filePath)
     struc.info()
     pds4_tools.view(filePath)
-

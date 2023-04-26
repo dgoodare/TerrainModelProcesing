@@ -19,15 +19,18 @@ class DEMDataset(Dataset):
         # get the names of the files in row 'index'
         imgPath = self.lookUp.iloc[index, 0]
         maskPath = self.lookUp.iloc[index, 1]
+        weightPath = self.lookUp.iloc[index, 2]
 
         groundTruthDir = 'outputSlices/'
         maskDir = 'outputMasks/'
+        weightDir = 'outputWeights/'
 
         # read the image and the mask
         groundTruth = torch.load(groundTruthDir + imgPath)
         mask = torch.load(maskDir + maskPath)
+        weight = torch.load(weightDir + weightPath)
 
-        return groundTruth, mask
+        return groundTruth, mask, weight
 
 
 def display_random_sample(dataset):
